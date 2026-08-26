@@ -54,7 +54,8 @@ body.capturing .preview-only{display:none!important;}
 #flow img.ph{max-width:100%;display:block;margin:14px auto;border-radius:6px;}
 .tb{font-weight:700}.ti{font-style:italic}.qb{font-weight:600}
 .hl{border-radius:3px;padding:0 3px;}
-.ul{background-repeat:no-repeat;background-position:0 88%;background-size:100% .36em;}
+#flow .qbar{border-left:3px solid #6bb3ae;padding-left:16px;margin:0 0 var(--pgap,14px);}
+#flow .qbar p:last-child{margin-bottom:0;}
 .brk{opacity:.72;}
 #footBox{opacity:.75;}
 .chat{border-radius:10px;}
@@ -189,20 +190,20 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <button data-wrap="ha">형광 A</button>
         <button data-wrap="hb">형광 B</button>
         <button data-wrap="hc">형광 C</button>
-        <button data-wrap="ua">강조선 A</button>
-        <button data-wrap="ub">강조선 B</button>
         <button data-wrap="q">따옴표 강조</button>
-        <button class="blk" data-line="# ">제목 줄</button>
-        <button class="blk" data-line="## ">부제목 줄</button>
         <button class="blk" data-act="photo">사진</button>
         <button class="blk" data-block="---">구분선</button>
         <button class="blk" data-block="===">페이지 나눔</button>
         <button class="clr" data-act="clear">비우기</button>
       </div>
       <div class="seg" style="margin-top:10px">
-        <button data-mark="&gt;">선택 → 왼쪽 말풍선</button>
-        <button data-mark="&lt;">선택 → 오른쪽 말풍선</button>
-        <button data-mark="">해제</button>
+        <button data-mark="&gt;">왼쪽 말풍선</button>
+        <button data-mark="&lt;">오른쪽 말풍선</button>
+      </div>
+      <div class="seg" style="margin-top:6px">
+        <button data-mark="|a">강조 A</button>
+        <button data-mark="|b">강조 B</button>
+        <button data-mark="">줄 표시 해제</button>
       </div>
       <input type="file" id="photoFile" accept="image/*" style="display:none">
       <p class="hint"><code>===</code> 는 페이지가 나뉘는 자리예요. 분할 저장을 누르면 그 지점마다 한 장씩 만들어집니다.</p>
@@ -226,7 +227,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <div class="f"><label>제목 ↔ 본문 <span class="v" id="titleGapV">28px</span></label>
           <input type="range" id="titleGap" min="0" max="140" step="2" value="28"></div>
       </div>
-      <div class="f"><label for="foot">하단</label><input type="text" id="foot" placeholder="EDEN"></div>
+      <div class="f"><label for="foot">하단</label><input type="text" id="foot" placeholder="비워도 됨"></div>
       <div class="two">
         <div class="f"><label for="footAlign">하단 배치</label>
           <select id="footAlign"><option value="left">왼쪽</option><option value="center">가운데</option><option value="right">오른쪽</option></select></div>
@@ -298,8 +299,8 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
       <div class="two">
         <div class="sw"><input type="color" id="color" value="#3b3b3b"><span>글자색</span></div>
         <div class="sw"><input type="color" id="c2" value="#5b62c0"><span>보조색</span></div>
-        <div class="sw"><input type="color" id="uaC" value="#6bb3ae"><span>강조선 A</span></div>
-        <div class="sw"><input type="color" id="ubC" value="#eaa94f"><span>강조선 B</span></div>
+        <div class="sw"><input type="color" id="uaC" value="#6bb3ae"><span>강조 A</span></div>
+        <div class="sw"><input type="color" id="ubC" value="#eaa94f"><span>강조 B</span></div>
       </div>
       <div class="three" style="margin-top:12px">
         <div class="sw"><input type="color" id="haC" value="#fbe9f2"><span>형광 A</span></div>
@@ -448,10 +449,10 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
 <div class="modal" id="helpModal">
   <div class="box">
     <h4>표기법</h4>
-    <p><code># 제목</code> · <code>## 부제목</code> — 줄 맨 앞에 붙입니다.</p>
-    <p><code>&gt; 대사</code> 왼쪽 말풍선 · <code>&lt; 대사</code> 오른쪽 말풍선</p>
+    <p><code>&gt; 대사</code> 왼쪽 말풍선 · <code>&lt; 대사</code> 오른쪽 말풍선 (꺾쇠 뒤에 띄어쓰기 한 칸)</p>
+    <p><code>|a 문장</code> 강조 A 막대 · <code>|b 문장</code> 강조 B 막대. 여러 줄을 연달아 붙이면 하나의 막대로 묶입니다.</p>
     <p><code>---</code> 구분선 · <code>===</code> 페이지 나눔</p>
-    <p>꾸밈은 태그로 들어갑니다 — <code>&lt;b&gt;</code> 굵게, <code>&lt;i&gt;</code> 기울임, <code>&lt;c&gt;</code> 보조색, <code>&lt;ha&gt;</code> 형광, <code>&lt;ua&gt;</code> 강조선, <code>&lt;q&gt;</code> 따옴표 강조. 툴바 버튼을 쓰면 직접 칠 일은 없어요.</p>
+    <p>글자 꾸밈은 태그로 들어갑니다 — <code>&lt;b&gt;</code> 굵게, <code>&lt;i&gt;</code> 기울임, <code>&lt;c&gt;</code> 보조색, <code>&lt;ha&gt;</code> 형광, <code>&lt;q&gt;</code> 따옴표 강조. 툴바 버튼을 쓰면 직접 칠 일은 없어요.</p>
     <p>따옴표·괄호 자동 감지를 켜두면 “대사”와 (속마음)은 태그 없이도 알아서 색이 잡힙니다.</p>
   </div>
   <button data-close>닫기</button>
@@ -472,12 +473,12 @@ const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const V=id=>+$(id).value||0;
 const S=id=>$(id).value;
 
-const TAGMAP={b:'tb',i:'ti',c:'c2',q:'qb',ha:'hl hA',hb:'hl hB',hc:'hl hC',ua:'ul uA',ub:'ul uB'};
+const TAGMAP={b:'tb',i:'ti',c:'c2',q:'qb',ha:'hl hA',hb:'hl hB',hc:'hl hC'};
 function inline(s){
   if($('smQuote').checked) s=s.replace(/[“"]([^”"]{1,300})[”"]/g,(m,g)=>'<c>“'+g+'”</c>');
   if($('smBracket').checked) s=s.replace(/\(([^)]{1,300})\)/g,(m,g)=>'<brk>('+g+')</brk>');
   s=esc(s);
-  s=s.replace(/&lt;(\/?)(b|i|c|q|ha|hb|hc|ua|ub|brk)&gt;/gi,(m,sl,tag)=>{
+  s=s.replace(/&lt;(\/?)(b|i|c|q|ha|hb|hc|brk)&gt;/gi,(m,sl,tag)=>{
     if(sl) return '</span>';
     tag=tag.toLowerCase();
     return '<span class="'+(tag==='brk'?'brk':TAGMAP[tag])+'">';
@@ -487,14 +488,27 @@ function inline(s){
 
 function parse(){
   const lines=ta.value.split('\n'), pages=[];
-  let buf='',chat=null,last=null;
+  let buf='',chat=null,last=null,bar=null,barType=null;
   const closeChat=()=>{if(chat!==null){buf+='<div class="chat">'+chat+'</div>';chat=null;last=null;}};
-  const flush=()=>{closeChat();pages.push(buf);buf='';};
+  const closeBar=()=>{if(bar!==null){buf+='<div class="qbar q'+barType+'">'+bar+'</div>';bar=null;barType=null;}};
+  const flush=()=>{closeChat();closeBar();pages.push(buf);buf='';};
   lines.forEach(line=>{
     const t=line.trim();
     if(t==='==='){flush();return;}
-    const b=line.match(/^\s*([<>])\s?(.*)$/);
+
+    const q=line.match(/^\s*\|([ab])\s?(.*)$/i);
+    if(q){
+      closeChat();
+      const ty=q[1].toUpperCase();
+      if(bar!==null&&barType!==ty) closeBar();
+      if(bar===null){bar='';barType=ty;}
+      bar+='<p>'+(inline(q[2])||'&nbsp;')+'</p>';
+      return;
+    }
+
+    const b=line.match(/^\s*([<>])\s(.*)$/);
     if(b){
+      closeBar();
       const side=b[1]==='>'?'left':'right';
       if(chat===null) chat='';
       const nm=(side==='left'?S('leftName'):S('rightName')).trim();
@@ -502,10 +516,9 @@ function parse(){
       chat+=`<div class="msg ${side}">${nick}<div class="bubble">${inline(b[2])||'&nbsp;'}</div></div>`;
       last=side; return;
     }
-    closeChat();
+
+    closeChat(); closeBar();
     if(t==='---'){buf+='<hr class="rule">';return;}
-    if(t.startsWith('## ')){buf+='<p class="h2">'+inline(t.slice(3))+'</p>';return;}
-    if(t.startsWith('# ')){buf+='<p class="h1">'+inline(t.slice(2))+'</p>';return;}
     buf+= t?'<p>'+inline(line)+'</p>':'<p>&nbsp;</p>';
   });
   flush();
@@ -552,8 +565,8 @@ function apply(){
   document.querySelectorAll('.hA').forEach(e=>e.style.background=S('haC'));
   document.querySelectorAll('.hB').forEach(e=>e.style.background=S('hbC'));
   document.querySelectorAll('.hC').forEach(e=>e.style.background=S('hcC'));
-  document.querySelectorAll('.uA').forEach(e=>e.style.backgroundImage=`linear-gradient(${S('uaC')},${S('uaC')})`);
-  document.querySelectorAll('.uB').forEach(e=>e.style.backgroundImage=`linear-gradient(${S('ubC')},${S('ubC')})`);
+  document.querySelectorAll('.qA').forEach(e=>e.style.borderLeftColor=S('uaC'));
+  document.querySelectorAll('.qB').forEach(e=>e.style.borderLeftColor=S('ubC'));
 
   document.querySelectorAll('.chat').forEach(c=>{
     c.style.background=chatStyle==='plain'?'transparent':S('chatBg');
@@ -690,7 +703,7 @@ $('toolbar').addEventListener('click',e=>{
 document.querySelectorAll('[data-mark]').forEach(btn=>btn.addEventListener('click',()=>{
   const[s,e]=sel(),val=ta.value,mark=btn.dataset.mark;
   const a=val.lastIndexOf('\n',s-1)+1; let b=val.indexOf('\n',e); if(b<0)b=val.length;
-  const out=val.slice(a,b).split('\n').map(l=>{const c=l.replace(/^\s*[<>]\s?/,'');return mark?mark+' '+c:c;}).join('\n');
+  const out=val.slice(a,b).split('\n').map(l=>{const c=l.replace(/^\s*(\|[ab]|[<>])\s?/i,'');return mark?mark+' '+c:c;}).join('\n');
   ta.value=val.slice(0,a)+out+val.slice(b); ta.setSelectionRange(a,a+out.length); render(); ta.focus();
 }));
 $('photoFile').addEventListener('change',e=>{
