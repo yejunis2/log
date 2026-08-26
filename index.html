@@ -18,11 +18,12 @@
 html,body{height:100%;margin:0;}
 body{font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif;
   background:#fff;color:var(--ink);-webkit-text-size-adjust:100%;
-  display:flex;flex-direction:column;overscroll-behavior:none;font-size:14px;}
+  display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:none;font-size:14px;}
+.side{display:flex;flex-direction:column;flex:0 0 auto;min-height:0;}
 body.capturing .preview-only{display:none!important;}
 
 /* ===== 미리보기 ===== */
-.stage{flex:0 0 auto;height:40dvh;min-height:210px;position:relative;overflow:auto;-webkit-overflow-scrolling:touch;
+.stage{flex:1 1 auto;min-height:0;position:relative;overflow:auto;-webkit-overflow-scrolling:touch;
   padding:16px;padding-top:calc(16px + env(safe-area-inset-top));background:#fff;
   display:flex;flex-direction:column;}
 .stage-inner{flex:1 0 auto;display:flex;justify-content:center;align-items:flex-start;min-width:100%;width:max-content;}
@@ -45,7 +46,7 @@ body.capturing .preview-only{display:none!important;}
 #content{position:relative;height:100%;display:flex;flex-direction:column;padding:70px 50px;}
 #jpWrap{width:calc(100% / var(--jp));transform:scaleX(var(--jp));transform-origin:left top;}
 #flow.cols2{column-count:2;column-gap:44px;}
-#flow{word-break:keep-all;overflow-wrap:break-word;}
+#flow{word-break:keep-all;overflow-wrap:break-word;white-space:pre-wrap;}
 #flow p{margin:0 0 var(--pgap,14px);}
 #flow .h1{font-weight:700;margin:0 0 10px;}
 #flow .h2{opacity:.66;margin:0 0 14px;}
@@ -63,12 +64,12 @@ body.capturing .preview-only{display:none!important;}
 .msg.right{align-items:flex-end;}
 .msg.left{align-items:flex-start;}
 .nick{opacity:.72;font-size:.82em;}
-.bubble{display:inline-block;border-radius:16px;word-break:keep-all;overflow-wrap:break-word;}
+.bubble{display:inline-block;border-radius:16px;word-break:keep-all;overflow-wrap:break-word;white-space:pre-wrap;}
 .msg.left .bubble{border-top-left-radius:5px;}
 .msg.right .bubble{border-top-right-radius:5px;}
 
 /* ===== 컨트롤 ===== */
-.rail{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--card);border-top:1px solid var(--line);padding-bottom:10px;}
+.rail{flex:0 0 216px;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--card);border-top:1px solid var(--line);padding-bottom:10px;}
 .group{border-bottom:1px solid var(--line);}
 .group>summary{list-style:none;cursor:pointer;padding:15px 18px;display:flex;align-items:center;gap:9px;
   font-size:14px;font-weight:700;letter-spacing:.01em;color:#e08fae;}
@@ -150,7 +151,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   body{flex-direction:row;}
   .stage{flex:1 1 auto;height:100dvh;}
   .side{width:390px;flex:0 0 390px;display:flex;flex-direction:column;height:100dvh;border-left:1px solid var(--line);background:var(--card);}
-  .rail{border-top:0;}
+  .rail{flex:1 1 auto;border-top:0;}
 }
 </style>
 </head>
@@ -181,7 +182,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   <details class="group" open>
     <summary>본문</summary>
     <div class="in">
-      <div class="f"><textarea id="text" placeholder="로그를 붙여넣으세요"></textarea></div>
+      <div class="f"><textarea id="text" placeholder="로그를 붙여넣으세요" autocorrect="off" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea></div>
       <div class="toolbar" id="toolbar">
         <button data-wrap="b"><b>굵게</b></button>
         <button data-wrap="i"><i>기울임</i></button>
@@ -306,8 +307,8 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <div class="sw"><input type="color" id="hbC" value="#fdf6cf"><span>형광 B</span></div>
       </div>
       <div style="margin-top:8px">
-        <label class="chk"><input type="checkbox" id="smQuote" checked> 따옴표 자동 감지 — “대사”에 보조색</label>
-        <label class="chk"><input type="checkbox" id="smBracket" checked> 괄호 자동 감지 — (속마음)을 흐리게</label>
+        <label class="chk"><input type="checkbox" id="smQuote"> 따옴표 자동 감지 — “대사”에 보조색</label>
+        <label class="chk"><input type="checkbox" id="smBracket"> 괄호 자동 감지 — (속마음)을 흐리게</label>
         <label class="chk"><input type="checkbox" id="smShadow"> 글자 그림자</label>
       </div>
     </div>
@@ -485,27 +486,27 @@ function inline(s){
 
 function parse(){
   const lines=ta.value.split('\n'), pages=[];
-  let buf='',chat=null,last=null,bar=null,barType=null;
+  let buf='',para=[],chat=null,last=null,bar=[],barType=null;
+  const flushPara=()=>{if(para.length){buf+='<p>'+para.join('\n')+'</p>';para=[];}};
   const closeChat=()=>{if(chat!==null){buf+='<div class="chat">'+chat+'</div>';chat=null;last=null;}};
-  const closeBar=()=>{if(bar!==null){buf+='<div class="qbar q'+barType+'">'+bar+'</div>';bar=null;barType=null;}};
-  const flush=()=>{closeChat();closeBar();pages.push(buf);buf='';};
+  const closeBar=()=>{if(bar.length){buf+='<div class="qbar q'+barType+'"><p>'+bar.join('\n')+'</p></div>';bar=[];barType=null;}};
+  const flushPage=()=>{flushPara();closeChat();closeBar();pages.push(buf);buf='';};
+
   lines.forEach(line=>{
     const t=line.trim();
-    if(t==='==='){flush();return;}
+    if(t==='==='){flushPage();return;}
 
     const q=line.match(/^\s*\|([ab])\s?(.*)$/i);
     if(q){
-      closeChat();
+      flushPara(); closeChat();
       const ty=q[1].toUpperCase();
-      if(bar!==null&&barType!==ty) closeBar();
-      if(bar===null){bar='';barType=ty;}
-      bar+='<p>'+(inline(q[2])||'&nbsp;')+'</p>';
-      return;
+      if(bar.length&&barType!==ty) closeBar();
+      barType=ty; bar.push(inline(q[2])); return;
     }
 
     const b=line.match(/^\s*([<>])\s(.*)$/);
     if(b){
-      closeBar();
+      flushPara(); closeBar();
       const side=b[1]==='>'?'left':'right';
       if(chat===null) chat='';
       const nm=(side==='left'?S('leftName'):S('rightName')).trim();
@@ -515,10 +516,11 @@ function parse(){
     }
 
     closeChat(); closeBar();
-    if(t==='---'){buf+='<hr class="rule">';return;}
-    buf+= t?'<p>'+inline(line)+'</p>':'<p>&nbsp;</p>';
+    if(t==='---'){flushPara();buf+='<hr class="rule">';return;}
+    if(!t){ para.length?flushPara():buf+='<p>&nbsp;</p>'; return; }
+    para.push(inline(line));
   });
-  flush();
+  flushPage();
   return pages;
 }
 
