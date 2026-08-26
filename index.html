@@ -11,8 +11,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
-  --ink:#1c2733; --sub:#6b7c8c; --sky:#4f8fc7; --deep:#356d9f;
-  --pale:#e7f1f9; --line:#dce6ef; --card:#fff; --field:#f5f9fc;
+  --ink:#2b2329; --sub:#8b7a82; --sky:#e08fae; --deep:#cf7b9b;
+  --pale:#fbe9f0; --line:#eee2e7; --card:#fff; --field:#fdf7f9;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;margin:0;}
@@ -23,11 +23,12 @@ body.capturing .preview-only{display:none!important;}
 
 /* ===== 미리보기 ===== */
 .stage{flex:0 0 auto;height:40dvh;min-height:210px;position:relative;overflow:auto;-webkit-overflow-scrolling:touch;
-  padding:16px;padding-top:calc(16px + env(safe-area-inset-top));background:#fff;}
-.stage-inner{display:flex;justify-content:center;min-width:100%;width:max-content;}
+  padding:16px;padding-top:calc(16px + env(safe-area-inset-top));background:#fff;
+  display:flex;flex-direction:column;}
+.stage-inner{flex:1 0 auto;display:flex;justify-content:center;align-items:flex-start;min-width:100%;width:max-content;}
 #zoom{transform-origin:top center;}
 .zoombar{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;gap:7px;
-  margin:10px auto 0;width:max-content;padding:5px 9px;
+  margin:14px auto 0;align-self:center;width:max-content;padding:5px 9px;
   background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:99px;backdrop-filter:blur(6px);}
 .zoombar button{width:30px;height:30px;border:0;border-radius:50%;background:var(--pale);color:var(--deep);font-size:15px;cursor:pointer;}
 .zoombar #zFit{width:auto;padding:0 11px;font-size:12px;font-weight:600;}
@@ -49,7 +50,7 @@ body.capturing .preview-only{display:none!important;}
 #flow .h1{font-weight:700;margin:0 0 10px;}
 #flow .h2{opacity:.66;margin:0 0 14px;}
 #flow .rule{border:0;border-top:1px solid currentColor;opacity:.22;margin:22px 0;}
-#flow .pbrk{border:0;border-top:2px dashed var(--sky);margin:26px 0;}
+#flow .pbrk{border:0;border-top:2px dashed #f0b6cb;margin:26px 0;}
 #flow img.ph{max-width:100%;display:block;margin:14px auto;border-radius:6px;}
 .tb{font-weight:700}.ti{font-style:italic}.qb{font-weight:600}
 .hl{border-radius:3px;padding:0 3px;}
@@ -68,12 +69,14 @@ body.capturing .preview-only{display:none!important;}
 /* ===== 컨트롤 ===== */
 .rail{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--card);border-top:1px solid var(--line);padding-bottom:10px;}
 .group{border-bottom:1px solid var(--line);}
-.group>summary{list-style:none;cursor:pointer;padding:16px 18px;display:flex;align-items:center;gap:8px;
-  font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--deep);}
+.group>summary{list-style:none;cursor:pointer;padding:15px 18px;display:flex;align-items:center;gap:9px;
+  font-size:14px;font-weight:700;letter-spacing:.01em;color:#e08fae;}
+.group>summary::before{content:'';width:7px;height:7px;border-radius:50%;background:#f6c9d9;flex:0 0 auto;}
+.group[open]>summary::before{background:#e08fae;}
 .group>summary::-webkit-details-marker{display:none;}
-.group>summary::after{content:'▾';margin-left:auto;font-size:12px;letter-spacing:0;color:var(--sub);}
+.group>summary::after{content:'▾';margin-left:auto;font-size:12px;letter-spacing:0;color:#eeaec6;}
 .group[open]>summary::after{content:'▴';}
-.group>summary:hover{background:var(--field);}
+.group>summary:hover{background:#fdf5f8;}
 .group .in{padding:0 18px 18px;}
 .f{margin-bottom:14px;}
 .f:last-child{margin-bottom:0;}
@@ -113,8 +116,8 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
 .toolbar{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;}
 .toolbar button{padding:8px 11px;font:inherit;font-size:12.5px;font-weight:600;
   background:var(--field);color:var(--ink);border:1px solid var(--line);border-radius:9px;cursor:pointer;}
-.toolbar button.blk{color:var(--deep);background:var(--pale);border-color:#cfe2f2;}
-.toolbar button.clr{color:#b4544d;background:#fdf0ef;border-color:#f3ddda;}
+.toolbar button.blk{color:var(--deep);background:var(--pale);border-color:#f4d7e2;}
+.toolbar button.clr{color:#b06070;background:#fdeef1;border-color:#f4dbe1;}
 
 .inline-row{display:flex;gap:8px;}
 .inline-row .btn{flex:0 0 auto;padding:0 16px;font:inherit;font-size:13.5px;font-weight:700;
@@ -207,7 +210,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   </details>
 
   <details class="group">
-    <summary>제목 · 하단</summary>
+    <summary>제목, 하단</summary>
     <div class="in">
       <div class="f"><label for="title">제목</label><input type="text" id="title" placeholder="비워도 됨"></div>
       <div class="f"><label for="subtitle">소제목</label><input type="text" id="subtitle" placeholder="비워도 됨"></div>
@@ -236,7 +239,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   </details>
 
   <details class="group">
-    <summary>서체</summary>
+    <summary>폰트</summary>
     <div class="in">
       <div class="f"><label for="font">글꼴</label>
         <select id="font">
@@ -261,7 +264,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   </details>
 
   <details class="group">
-    <summary>조판</summary>
+    <summary>정렬</summary>
     <div class="in">
       <div class="two">
         <div class="f"><label>정렬</label>
@@ -290,7 +293,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   </details>
 
   <details class="group">
-    <summary>색과 강조</summary>
+    <summary>색상</summary>
     <div class="in">
       <div class="two">
         <div class="sw"><input type="color" id="color" value="#3b3b3b"><span>글자색</span></div>
@@ -347,7 +350,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   </details>
 
   <details class="group">
-    <summary>캔버스</summary>
+    <summary>비율</summary>
     <div class="in">
       <div class="f"><label>비율</label>
         <div class="seg wrap" id="ratioSeg">
@@ -516,8 +519,8 @@ function render(){
   const f=S('foot').trim();
   footBox.innerHTML=f?inline(f):''; footBox.style.display=f?'':'none';
   const pages=parse();
-  flow.innerHTML=pages.length?pages.map(p=>p||'<p>&nbsp;</p>').join('<hr class="pbrk preview-only">')
-    :'<p style="opacity:.35">내용을 입력해 보세요.</p>';
+  flow.innerHTML=ta.value.trim()
+    ? pages.map(p=>p||'<p>&nbsp;</p>').join('<hr class="pbrk preview-only">') : '';
   apply();
 }
 
@@ -822,18 +825,6 @@ $('copyBtn').onclick=async()=>{
 $('helpBtn').onclick=()=>$('helpModal').classList.add('on');
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('.modal').classList.remove('on'));
 
-ta.value=`# 불의 센티넬
-## EDEN — 03
-
-이것이 나의 세니였다. 내가 사랑하는, 나를 사랑하는 불의 센티넬.
-자신의 것을 지키기 위해서라면 세상 전부를 적으로 돌릴 수도 있는 여자.
-
-> 정말 괜찮은 거야?
-< 응, 이제 괜찮아. (거짓말이었다.)
-
----
-그날의 온도를 오래 기억할 것 같았다.`;
-$('foot').value='EDEN';
 render(); setTimeout(fitZoom,120);
 </script>
 </body>
