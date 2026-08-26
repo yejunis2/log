@@ -189,7 +189,6 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <button data-wrap="c">보조색</button>
         <button data-wrap="ha">형광 A</button>
         <button data-wrap="hb">형광 B</button>
-        <button data-wrap="hc">형광 C</button>
         <button data-wrap="q">따옴표 강조</button>
         <button class="blk" data-act="photo">사진</button>
         <button class="blk" data-block="---">구분선</button>
@@ -302,10 +301,9 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <div class="sw"><input type="color" id="uaC" value="#6bb3ae"><span>강조 A</span></div>
         <div class="sw"><input type="color" id="ubC" value="#eaa94f"><span>강조 B</span></div>
       </div>
-      <div class="three" style="margin-top:12px">
+      <div class="two" style="margin-top:12px">
         <div class="sw"><input type="color" id="haC" value="#fbe9f2"><span>형광 A</span></div>
         <div class="sw"><input type="color" id="hbC" value="#fdf6cf"><span>형광 B</span></div>
-        <div class="sw"><input type="color" id="hcC" value="#e4eefb"><span>형광 C</span></div>
       </div>
       <div style="margin-top:8px">
         <label class="chk"><input type="checkbox" id="smQuote" checked> 따옴표 자동 감지 — “대사”에 보조색</label>
@@ -377,13 +375,12 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
     <summary>배경</summary>
     <div class="in">
       <div class="f"><div class="seg wrap" id="bgSeg">
-        <button data-mode="solid" aria-pressed="true">단색</button><button data-mode="g2">두 색</button>
-        <button data-mode="g3">세 색</button><button data-mode="image">이미지</button><button data-mode="none">투명</button>
+        <button data-mode="solid" aria-pressed="true">단색</button><button data-mode="g2">그라데이션</button>
+        <button data-mode="image">이미지</button><button data-mode="none">투명</button>
       </div></div>
-      <div class="three" id="bgColors">
+      <div class="two" id="bgColors">
         <div class="sw"><input type="color" id="bg1" value="#ffffff"><span>색 1</span></div>
-        <div class="sw" id="bg2W" style="display:none"><input type="color" id="bg2" value="#e6f0f8"><span>색 2</span></div>
-        <div class="sw" id="bg3W" style="display:none"><input type="color" id="bg3" value="#f8ecec"><span>색 3</span></div>
+        <div class="sw" id="bg2W" style="display:none"><input type="color" id="bg2" value="#f6e3ec"><span>색 2</span></div>
       </div>
       <div class="f" id="bgAngleF" style="display:none;margin-top:12px">
         <label>그라데이션 방향 <span class="v" id="bgAngleV">160°</span></label>
@@ -473,12 +470,12 @@ const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const V=id=>+$(id).value||0;
 const S=id=>$(id).value;
 
-const TAGMAP={b:'tb',i:'ti',c:'c2',q:'qb',ha:'hl hA',hb:'hl hB',hc:'hl hC'};
+const TAGMAP={b:'tb',i:'ti',c:'c2',q:'qb',ha:'hl hA',hb:'hl hB'};
 function inline(s){
   if($('smQuote').checked) s=s.replace(/[“"]([^”"]{1,300})[”"]/g,(m,g)=>'<c>“'+g+'”</c>');
   if($('smBracket').checked) s=s.replace(/\(([^)]{1,300})\)/g,(m,g)=>'<brk>('+g+')</brk>');
   s=esc(s);
-  s=s.replace(/&lt;(\/?)(b|i|c|q|ha|hb|hc|brk)&gt;/gi,(m,sl,tag)=>{
+  s=s.replace(/&lt;(\/?)(b|i|c|q|ha|hb|brk)&gt;/gi,(m,sl,tag)=>{
     if(sl) return '</span>';
     tag=tag.toLowerCase();
     return '<span class="'+(tag==='brk'?'brk':TAGMAP[tag])+'">';
@@ -564,7 +561,6 @@ function apply(){
   document.querySelectorAll('.c2').forEach(e=>e.style.color=S('c2'));
   document.querySelectorAll('.hA').forEach(e=>e.style.background=S('haC'));
   document.querySelectorAll('.hB').forEach(e=>e.style.background=S('hbC'));
-  document.querySelectorAll('.hC').forEach(e=>e.style.background=S('hcC'));
   document.querySelectorAll('.qA').forEach(e=>e.style.borderLeftColor=S('uaC'));
   document.querySelectorAll('.qB').forEach(e=>e.style.borderLeftColor=S('ubC'));
 
@@ -597,7 +593,6 @@ function apply(){
   bgLayer.style.inset='0'; bgLayer.style.filter='none'; overlay.style.background='transparent';
   if(bgMode==='solid') bgLayer.style.background=S('bg1');
   else if(bgMode==='g2') bgLayer.style.background=`linear-gradient(${V('bgAngle')}deg,${S('bg1')},${S('bg2')})`;
-  else if(bgMode==='g3') bgLayer.style.background=`linear-gradient(${V('bgAngle')}deg,${S('bg1')},${S('bg2')},${S('bg3')})`;
   else if(bgMode==='image'){
     bgLayer.style.background=bgImg?`${S('bg1')} url(${bgImg}) center/cover no-repeat`:S('bg1');
     if(V('bgBlur')){bgLayer.style.filter=`blur(${V('bgBlur')}px)`;bgLayer.style.inset=-V('bgBlur')*2+'px';}
@@ -671,9 +666,8 @@ seg('chatSeg','style',v=>{
 });
 seg('bgSeg','mode',v=>{
   bgMode=v;
-  $('bg2W').style.display=(v==='g2'||v==='g3')?'':'none';
-  $('bg3W').style.display=v==='g3'?'':'none';
-  $('bgAngleF').style.display=(v==='g2'||v==='g3')?'':'none';
+  $('bg2W').style.display=v==='g2'?'':'none';
+  $('bgAngleF').style.display=v==='g2'?'':'none';
   $('bgImgF').style.display=v==='image'?'':'none';
   $('bgColors').style.display=v==='none'?'none':'';
   apply();
@@ -739,9 +733,8 @@ function applyCfg(o){
   const m=(id,k,v)=>[...$(id).children].forEach(b=>b.setAttribute('aria-pressed',b.dataset[k]==String(v)));
   m('ratioSeg','ratio',ratio);m('bgSeg','mode',bgMode);m('chatSeg','style',chatStyle);
   m('alignSeg','align',align);m('brSeg','br',brMode);m('colSeg','col',cols);m('wSeg','w',weight);
-  $('bg2W').style.display=(bgMode==='g2'||bgMode==='g3')?'':'none';
-  $('bg3W').style.display=bgMode==='g3'?'':'none';
-  $('bgAngleF').style.display=(bgMode==='g2'||bgMode==='g3')?'':'none';
+  $('bg2W').style.display=bgMode==='g2'?'':'none';
+  $('bgAngleF').style.display=bgMode==='g2'?'':'none';
   $('bgImgF').style.display=bgMode==='image'?'':'none';
   $('bgColors').style.display=bgMode==='none'?'none':'';
   render();
