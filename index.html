@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>로그 이미지 생성기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=Hahmlet:wght@200;300;400;500;600&family=IBM+Plex+Sans+KR:wght@200;300;400;500;600&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@200;300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{
+  --ink:#1c2733; --sub:#6b7c8c; --sky:#4f8fc7; --deep:#356d9f;
+  --pale:#e7f1f9; --line:#dce6ef; --card:#fff; --field:#f5f9fc;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;margin:0;}
+body{font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif;
+  background:#fff;color:var(--ink);-webkit-text-size-adjust:100%;
+  display:flex;flex-direction:column;overscroll-behavior:none;font-size:14px;}
+body.capturing .preview-only{display:none!important;}
+
+/* ===== 미리보기 ===== */
+.stage{flex:0 0 auto;height:40dvh;min-height:210px;position:relative;overflow:auto;-webkit-overflow-scrolling:touch;
+  padding:16px;padding-top:calc(16px + env(safe-area-inset-top));background:#fff;}
+.stage-inner{display:flex;justify-content:center;min-width:100%;width:max-content;}
+#zoom{transform-origin:top center;}
+.zoombar{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;gap:7px;
+  margin:10px auto 0;width:max-content;padding:5px 9px;
+  background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:99px;backdrop-filter:blur(6px);}
+.zoombar button{width:30px;height:30px;border:0;border-radius:50%;background:var(--pale);color:var(--deep);font-size:15px;cursor:pointer;}
+.zoombar #zFit{width:auto;padding:0 11px;font-size:12px;font-weight:600;}
+.zoombar input[type=range]{width:100px;height:24px;}
+.zoombar .pct{font-size:11.5px;width:40px;text-align:center;color:var(--sub);font-variant-numeric:tabular-nums;}
+.warn{position:absolute;left:16px;top:calc(16px + env(safe-area-inset-top));z-index:4;display:none;
+  font-size:11px;color:#b45309;background:#fff7ed;padding:4px 9px;border-radius:99px;}
+
+/* ===== 저장 영역 ===== */
+#page{--jp:1;position:relative;width:600px;overflow:hidden;background:#fff;
+  box-shadow:0 4px 20px rgba(28,39,51,.13),0 0 0 1px rgba(28,39,51,.06);}
+#bgLayer,#overlay{position:absolute;inset:0;}
+#bgLayer{background-size:cover;background-position:center;}
+#content{position:relative;height:100%;display:flex;flex-direction:column;padding:70px 50px;}
+#jpWrap{width:calc(100% / var(--jp));transform:scaleX(var(--jp));transform-origin:left top;}
+#flow.cols2{column-count:2;column-gap:44px;}
+#flow{word-break:keep-all;overflow-wrap:break-word;}
+#flow p{margin:0 0 var(--pgap,14px);}
+#flow .h1{font-weight:700;margin:0 0 10px;}
+#flow .h2{opacity:.66;margin:0 0 14px;}
+#flow .rule{border:0;border-top:1px solid currentColor;opacity:.22;margin:22px 0;}
+#flow .pbrk{border:0;border-top:2px dashed var(--sky);margin:26px 0;}
+#flow img.ph{max-width:100%;display:block;margin:14px auto;border-radius:6px;}
+.tb{font-weight:700}.ti{font-style:italic}.qb{font-weight:600}
+.hl{border-radius:3px;padding:0 3px;}
+.ul{background-repeat:no-repeat;background-position:0 88%;background-size:100% .36em;}
+.brk{opacity:.72;}
+#footBox{opacity:.75;}
+.chat{border-radius:10px;}
+.msg{display:flex;flex-direction:column;}
+.msg.right{align-items:flex-end;}
+.msg.left{align-items:flex-start;}
+.nick{opacity:.72;font-size:.82em;}
+.bubble{display:inline-block;border-radius:16px;word-break:keep-all;overflow-wrap:break-word;}
+.msg.left .bubble{border-top-left-radius:5px;}
+.msg.right .bubble{border-top-right-radius:5px;}
+
+/* ===== 컨트롤 ===== */
+.rail{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--card);border-top:1px solid var(--line);padding-bottom:10px;}
+.group{border-bottom:1px solid var(--line);}
+.group>summary{list-style:none;cursor:pointer;padding:16px 18px;display:flex;align-items:center;gap:8px;
+  font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--deep);}
+.group>summary::-webkit-details-marker{display:none;}
+.group>summary::after{content:'▾';margin-left:auto;font-size:12px;letter-spacing:0;color:var(--sub);}
+.group[open]>summary::after{content:'▴';}
+.group>summary:hover{background:var(--field);}
+.group .in{padding:0 18px 18px;}
+.f{margin-bottom:14px;}
+.f:last-child{margin-bottom:0;}
+.f>label{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--sub);margin-bottom:6px;}
+.f .v{font-variant-numeric:tabular-nums;font-weight:700;color:var(--deep);}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}
+
+input[type=text],select,textarea{width:100%;padding:11px 12px;font:inherit;font-size:16px;color:var(--ink);
+  background:var(--field);border:1px solid var(--line);border-radius:11px;outline:none;appearance:none;-webkit-appearance:none;}
+select{background-image:linear-gradient(45deg,transparent 50%,var(--sub) 50%),linear-gradient(135deg,var(--sub) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px,5px;background-repeat:no-repeat;padding-right:34px;}
+input:focus,select:focus,textarea:focus{border-color:var(--sky);box-shadow:0 0 0 3px var(--pale);}
+textarea{resize:vertical;min-height:170px;line-height:1.65;font-size:15px;}
+input[type=file]{font-size:12.5px;color:var(--sub);}
+input[type=color]{width:100%;height:38px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--field);}
+.sw{display:flex;flex-direction:column;gap:5px;}
+.sw span{font-size:11.5px;color:var(--sub);text-align:center;}
+
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:30px;background:none;}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--pale);border-radius:99px;}
+input[type=range]::-moz-range-track{height:4px;background:var(--pale);border-radius:99px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-10px;
+  background:var(--card);border:2px solid var(--sky);border-radius:50%;box-shadow:0 1px 3px rgba(28,39,51,.2);cursor:pointer;}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;background:var(--card);border:2px solid var(--sky);border-radius:50%;}
+
+.seg{display:flex;gap:3px;background:var(--field);padding:4px;border-radius:12px;}
+.seg.wrap{flex-wrap:wrap;}
+.seg button{flex:1;min-width:0;padding:10px 3px;font:inherit;font-size:12.5px;color:var(--sub);
+  background:none;border:0;border-radius:9px;cursor:pointer;white-space:nowrap;}
+.seg button[aria-pressed=true]{background:var(--card);color:var(--deep);font-weight:700;box-shadow:0 1px 2px rgba(28,39,51,.12);}
+.chk{display:flex;align-items:center;gap:9px;font-size:13.5px;padding:8px 0;color:var(--ink);}
+.chk input{width:19px;height:19px;accent-color:var(--sky);}
+.hint{font-size:12px;color:var(--sub);line-height:1.55;margin:9px 0 0;}
+code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;font-size:11.5px;}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;}
+.toolbar button{padding:8px 11px;font:inherit;font-size:12.5px;font-weight:600;
+  background:var(--field);color:var(--ink);border:1px solid var(--line);border-radius:9px;cursor:pointer;}
+.toolbar button.blk{color:var(--deep);background:var(--pale);border-color:#cfe2f2;}
+.toolbar button.clr{color:#b4544d;background:#fdf0ef;border-color:#f3ddda;}
+
+.inline-row{display:flex;gap:8px;}
+.inline-row .btn{flex:0 0 auto;padding:0 16px;font:inherit;font-size:13.5px;font-weight:700;
+  background:var(--sky);color:#fff;border:0;border-radius:11px;cursor:pointer;}
+.chips{display:flex;flex-wrap:wrap;gap:7px;}
+.chip{display:flex;align-items:center;gap:2px;background:var(--field);border:1px solid var(--line);border-radius:99px;overflow:hidden;}
+.chip .load{padding:8px 5px 8px 13px;font:inherit;font-size:13px;font-weight:600;color:var(--deep);background:none;border:0;cursor:pointer;}
+.chip .del{padding:8px 11px 8px 4px;font:inherit;font-size:13px;color:var(--sub);background:none;border:0;cursor:pointer;}
+.empty{font-size:12.5px;color:var(--sub);}
+
+.save{flex:0 0 auto;display:flex;gap:8px;padding:11px 14px;padding-bottom:calc(11px + env(safe-area-inset-bottom));
+  background:var(--card);border-top:1px solid var(--line);}
+.save button{flex:1;padding:13px 5px;font:inherit;font-size:14px;font-weight:700;border-radius:12px;cursor:pointer;
+  background:var(--card);color:var(--deep);border:1px solid var(--line);line-height:1.25;}
+.save button.primary{background:var(--sky);color:#fff;border-color:var(--sky);}
+.save button:disabled{opacity:.55;}
+
+.modal{position:fixed;inset:0;z-index:99;display:none;background:rgba(20,30,40,.85);padding:18px;
+  flex-direction:column;align-items:center;justify-content:center;gap:12px;}
+.modal.on{display:flex;}
+.modal .box{background:var(--card);border-radius:16px;padding:20px;max-width:520px;width:100%;max-height:76dvh;overflow:auto;}
+.modal .box h4{margin:0 0 12px;font-family:'Gowun Batang',serif;font-size:17px;}
+.modal .box p{font-size:13.5px;line-height:1.75;margin:0 0 8px;color:var(--sub);}
+.modal .shots{display:flex;flex-direction:column;gap:10px;align-items:center;width:100%;max-height:70dvh;overflow:auto;}
+.modal .shots img{max-width:100%;border-radius:8px;background:#fff;}
+.modal>button{padding:12px 24px;font:inherit;font-size:15px;font-weight:700;background:#fff;color:var(--ink);border:0;border-radius:11px;cursor:pointer;}
+
+@media (min-width:960px){
+  body{flex-direction:row;}
+  .stage{flex:1 1 auto;height:100dvh;}
+  .side{width:390px;flex:0 0 390px;display:flex;flex-direction:column;height:100dvh;border-left:1px solid var(--line);background:var(--card);}
+  .rail{border-top:0;}
+}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <span class="warn preview-only" id="warn">내용이 캔버스 밖으로 넘쳤어요</span>
+  <div class="stage-inner"><div id="zoom">
+    <div id="page">
+      <div id="bgLayer"></div><div id="overlay"></div>
+      <div id="content"><div id="jpWrap">
+        <div id="titleBox"></div><div id="flow"></div><div id="footBox"></div>
+      </div></div>
+    </div>
+  </div></div>
+  <div class="zoombar preview-only">
+    <button id="zOut">−</button>
+    <input type="range" id="zoomR" min="15" max="200" step="5" value="100">
+    <button id="zIn">＋</button>
+    <span class="pct" id="zPct">100%</span>
+    <button id="zFit">맞춤</button>
+  </div>
+</div>
+
+<div class="side">
+<div class="rail" id="rail">
+
+  <details class="group" open>
+    <summary>본문</summary>
+    <div class="in">
+      <div class="f"><textarea id="text" placeholder="로그를 붙여넣으세요"></textarea></div>
+      <div class="toolbar" id="toolbar">
+        <button data-wrap="b"><b>굵게</b></button>
+        <button data-wrap="i"><i>기울임</i></button>
+        <button data-act="quote">“대사”</button>
+        <button data-wrap="c">보조색</button>
+        <button data-wrap="ha">형광 A</button>
+        <button data-wrap="hb">형광 B</button>
+        <button data-wrap="hc">형광 C</button>
+        <button data-wrap="ua">강조선 A</button>
+        <button data-wrap="ub">강조선 B</button>
+        <button data-wrap="q">따옴표 강조</button>
+        <button class="blk" data-line="# ">제목 줄</button>
+        <button class="blk" data-line="## ">부제목 줄</button>
+        <button class="blk" data-act="photo">사진</button>
+        <button class="blk" data-block="---">구분선</button>
+        <button class="blk" data-block="===">페이지 나눔</button>
+        <button class="clr" data-act="clear">비우기</button>
+      </div>
+      <div class="seg" style="margin-top:10px">
+        <button data-mark="&gt;">선택 → 왼쪽 말풍선</button>
+        <button data-mark="&lt;">선택 → 오른쪽 말풍선</button>
+        <button data-mark="">해제</button>
+      </div>
+      <input type="file" id="photoFile" accept="image/*" style="display:none">
+      <p class="hint"><code>===</code> 는 페이지가 나뉘는 자리예요. 분할 저장을 누르면 그 지점마다 한 장씩 만들어집니다.</p>
+    </div>
+  </details>
+
+  <details class="group">
+    <summary>제목 · 하단</summary>
+    <div class="in">
+      <div class="f"><label for="title">제목</label><input type="text" id="title" placeholder="비워도 됨"></div>
+      <div class="f"><label for="subtitle">소제목</label><input type="text" id="subtitle" placeholder="비워도 됨"></div>
+      <div class="two">
+        <div class="f"><label for="titleAlign">제목 정렬</label>
+          <select id="titleAlign"><option value="left">왼쪽</option><option value="center">가운데</option><option value="right">오른쪽</option></select></div>
+        <div class="f"><label>제목 크기 <span class="v" id="titleSizeV">24px</span></label>
+          <input type="range" id="titleSize" min="10" max="72" step="1" value="24"></div>
+      </div>
+      <div class="two">
+        <div class="f"><label>소제목 크기 <span class="v" id="subSizeV">15px</span></label>
+          <input type="range" id="subSize" min="8" max="48" step="1" value="15"></div>
+        <div class="f"><label>제목 ↔ 본문 <span class="v" id="titleGapV">28px</span></label>
+          <input type="range" id="titleGap" min="0" max="140" step="2" value="28"></div>
+      </div>
+      <div class="f"><label for="foot">하단</label><input type="text" id="foot" placeholder="EDEN"></div>
+      <div class="two">
+        <div class="f"><label for="footAlign">하단 배치</label>
+          <select id="footAlign"><option value="left">왼쪽</option><option value="center">가운데</option><option value="right">오른쪽</option></select></div>
+        <div class="f"><label>하단 크기 <span class="v" id="footSizeV">14px</span></label>
+          <input type="range" id="footSize" min="8" max="40" step="1" value="14"></div>
+      </div>
+      <div class="f"><label>하단 ↔ 본문 <span class="v" id="footGapV">35px</span></label>
+        <input type="range" id="footGap" min="0" max="160" step="1" value="35"></div>
+    </div>
+  </details>
+
+  <details class="group">
+    <summary>서체</summary>
+    <div class="in">
+      <div class="f"><label for="font">글꼴</label>
+        <select id="font">
+          <option value="'Pretendard Variable',Pretendard,sans-serif">프리텐다드</option>
+          <option value="'IBM Plex Sans KR',sans-serif">IBM 플렉스 산스</option>
+          <option value="'Gowun Dodum',sans-serif">고운돋움</option>
+          <option value="'Nanum Myeongjo',serif">나눔명조</option>
+          <option value="'Noto Serif KR',serif">본명조</option>
+          <option value="'Gowun Batang',serif">고운바탕</option>
+          <option value="'Hahmlet',serif">함렛</option>
+          <option value="'Nanum Pen Script',cursive">나눔손글씨 펜</option>
+          <option value="__custom__">내가 올린 글꼴</option>
+        </select></div>
+      <div class="f"><label for="fontFile">글꼴 파일 추가 (.ttf · .otf · .woff2)</label>
+        <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2"></div>
+      <div class="f"><label>굵기</label>
+        <div class="seg" id="wSeg">
+          <button data-w="200">얇게</button><button data-w="300" aria-pressed="true">약간 얇게</button>
+          <button data-w="400">보통</button><button data-w="500">약간 굵게</button><button data-w="700">굵게</button>
+        </div></div>
+    </div>
+  </details>
+
+  <details class="group">
+    <summary>조판</summary>
+    <div class="in">
+      <div class="two">
+        <div class="f"><label>정렬</label>
+          <div class="seg" id="alignSeg">
+            <button data-align="left" aria-pressed="true">왼쪽</button><button data-align="center">가운데</button>
+            <button data-align="right">오른쪽</button><button data-align="justify">양쪽</button>
+          </div></div>
+        <div class="f"><label>줄바꿈</label>
+          <div class="seg" id="brSeg"><button data-br="keep-all" aria-pressed="true">단어 단위</button><button data-br="break-all">글자 단위</button></div></div>
+      </div>
+      <div class="two">
+        <div class="f"><label>글자 크기 <span class="v" id="sizeV">16px</span></label>
+          <input type="range" id="size" min="9" max="60" step="1" value="16"></div>
+        <div class="f"><label>자간 <span class="v" id="lsV">-0.5px</span></label>
+          <input type="range" id="ls" min="-5" max="10" step="0.1" value="-0.5"></div>
+        <div class="f"><label>행간 <span class="v" id="lhV">22px</span></label>
+          <input type="range" id="lh" min="8" max="90" step="1" value="22"></div>
+        <div class="f"><label>문단 간격 <span class="v" id="pgapV">14px</span></label>
+          <input type="range" id="pgap" min="0" max="80" step="1" value="14"></div>
+        <div class="f"><label>장평 <span class="v" id="jpV">100%</span></label>
+          <input type="range" id="jp" min="60" max="140" step="1" value="100"></div>
+        <div class="f"><label>사진 너비 <span class="v" id="phWV">100%</span></label>
+          <input type="range" id="phW" min="20" max="100" step="5" value="100"></div>
+      </div>
+    </div>
+  </details>
+
+  <details class="group">
+    <summary>색과 강조</summary>
+    <div class="in">
+      <div class="two">
+        <div class="sw"><input type="color" id="color" value="#3b3b3b"><span>글자색</span></div>
+        <div class="sw"><input type="color" id="c2" value="#5b62c0"><span>보조색</span></div>
+        <div class="sw"><input type="color" id="uaC" value="#6bb3ae"><span>강조선 A</span></div>
+        <div class="sw"><input type="color" id="ubC" value="#eaa94f"><span>강조선 B</span></div>
+      </div>
+      <div class="three" style="margin-top:12px">
+        <div class="sw"><input type="color" id="haC" value="#fbe9f2"><span>형광 A</span></div>
+        <div class="sw"><input type="color" id="hbC" value="#fdf6cf"><span>형광 B</span></div>
+        <div class="sw"><input type="color" id="hcC" value="#e4eefb"><span>형광 C</span></div>
+      </div>
+      <div style="margin-top:8px">
+        <label class="chk"><input type="checkbox" id="smQuote" checked> 따옴표 자동 감지 — “대사”에 보조색</label>
+        <label class="chk"><input type="checkbox" id="smBracket" checked> 괄호 자동 감지 — (속마음)을 흐리게</label>
+        <label class="chk"><input type="checkbox" id="smShadow"> 글자 그림자</label>
+      </div>
+    </div>
+  </details>
+
+  <details class="group">
+    <summary>말풍선</summary>
+    <div class="in">
+      <div class="f"><div class="seg" id="chatSeg">
+        <button data-style="kakao" aria-pressed="true">카카오톡</button>
+        <button data-style="imsg">아이메시지</button><button data-style="plain">심플</button>
+      </div></div>
+      <div class="two">
+        <div class="f"><label for="leftName">왼쪽 이름</label><input type="text" id="leftName" placeholder="비우면 숨김"></div>
+        <div class="f"><label for="rightName">오른쪽 이름</label><input type="text" id="rightName" placeholder="비우면 숨김"></div>
+      </div>
+      <div class="three">
+        <div class="sw"><input type="color" id="chatBg" value="#b2c7da"><span>대화창</span></div>
+        <div class="sw"><input type="color" id="leftBg" value="#ffffff"><span>왼쪽 풍선</span></div>
+        <div class="sw"><input type="color" id="rightBg" value="#fee500"><span>오른쪽 풍선</span></div>
+        <div class="sw"><input type="color" id="leftFg" value="#1a1a1a"><span>왼쪽 글자</span></div>
+        <div class="sw"><input type="color" id="rightFg" value="#1a1a1a"><span>오른쪽 글자</span></div>
+      </div>
+      <div class="two" style="margin-top:14px">
+        <div class="f"><label>글자 크기 <span class="v" id="cSizeV">15px</span></label>
+          <input type="range" id="cSize" min="8" max="40" step="1" value="15"></div>
+        <div class="f"><label>행간 <span class="v" id="cLhV">20px</span></label>
+          <input type="range" id="cLh" min="10" max="60" step="1" value="20"></div>
+        <div class="f"><label>내부 여백 <span class="v" id="cPadV">12px</span></label>
+          <input type="range" id="cPad" min="2" max="34" step="1" value="12"></div>
+        <div class="f"><label>풍선 간격 <span class="v" id="cGapV">12px</span></label>
+          <input type="range" id="cGap" min="0" max="40" step="1" value="12"></div>
+        <div class="f"><label>이름 간격 <span class="v" id="cNameV">4px</span></label>
+          <input type="range" id="cName" min="0" max="24" step="1" value="4"></div>
+        <div class="f"><label>풍선 너비 <span class="v" id="cWV">75%</span></label>
+          <input type="range" id="cW" min="40" max="100" step="1" value="75"></div>
+      </div>
+    </div>
+  </details>
+
+  <details class="group">
+    <summary>캔버스</summary>
+    <div class="in">
+      <div class="f"><label>비율</label>
+        <div class="seg wrap" id="ratioSeg">
+          <button data-ratio="auto" aria-pressed="true">자동</button><button data-ratio="1:1">1:1</button>
+          <button data-ratio="4:5">4:5</button><button data-ratio="16:9">16:9</button><button data-ratio="9:16">9:16</button>
+        </div></div>
+      <div class="f"><label>너비 <span class="v" id="widthV">600px</span></label>
+        <input type="range" id="width" min="320" max="1600" step="10" value="600"></div>
+      <div class="f"><label>단 나누기</label>
+        <div class="seg" id="colSeg"><button data-col="1" aria-pressed="true">한 단</button><button data-col="2">두 단 (책 내지)</button></div></div>
+      <div class="two">
+        <div class="f"><label>좌우 여백 <span class="v" id="phV">50px</span></label>
+          <input type="range" id="ph" min="0" max="260" step="2" value="50"></div>
+        <div class="f"><label>위아래 여백 <span class="v" id="pvV">70px</span></label>
+          <input type="range" id="pv" min="0" max="260" step="2" value="70"></div>
+      </div>
+      <div class="f" id="vAlignF" style="display:none"><label for="vAlign">세로 위치</label>
+        <select id="vAlign"><option value="flex-start">위</option><option value="center" selected>가운데</option><option value="flex-end">아래</option></select></div>
+    </div>
+  </details>
+
+  <details class="group">
+    <summary>배경</summary>
+    <div class="in">
+      <div class="f"><div class="seg wrap" id="bgSeg">
+        <button data-mode="solid" aria-pressed="true">단색</button><button data-mode="g2">두 색</button>
+        <button data-mode="g3">세 색</button><button data-mode="image">이미지</button><button data-mode="none">투명</button>
+      </div></div>
+      <div class="three" id="bgColors">
+        <div class="sw"><input type="color" id="bg1" value="#ffffff"><span>색 1</span></div>
+        <div class="sw" id="bg2W" style="display:none"><input type="color" id="bg2" value="#e6f0f8"><span>색 2</span></div>
+        <div class="sw" id="bg3W" style="display:none"><input type="color" id="bg3" value="#f8ecec"><span>색 3</span></div>
+      </div>
+      <div class="f" id="bgAngleF" style="display:none;margin-top:12px">
+        <label>그라데이션 방향 <span class="v" id="bgAngleV">160°</span></label>
+        <input type="range" id="bgAngle" min="0" max="360" step="5" value="160"></div>
+      <div id="bgImgF" style="display:none">
+        <div class="f" style="margin-top:12px"><label for="bgFile">배경 이미지</label><input type="file" id="bgFile" accept="image/*"></div>
+        <div class="two">
+          <div class="sw"><input type="color" id="ovColor" value="#000000"><span>오버레이 색</span></div>
+          <div class="f"><label>오버레이 투명도 <span class="v" id="ovAlphaV">30%</span></label>
+            <input type="range" id="ovAlpha" min="0" max="100" step="1" value="30"></div>
+        </div>
+        <div class="f"><label>배경 흐림 <span class="v" id="bgBlurV">0px</span></label>
+          <input type="range" id="bgBlur" min="0" max="20" step="1" value="0"></div>
+      </div>
+      <div class="two" style="margin-top:14px">
+        <div class="f"><label>테두리 <span class="v" id="borderWV">0px</span></label>
+          <input type="range" id="borderW" min="0" max="16" step="1" value="0"></div>
+        <div class="sw"><input type="color" id="borderC" value="#d8e3ec"><span>테두리 색</span></div>
+      </div>
+      <div class="f"><label>모서리 둥글기 <span class="v" id="radiusV">0px</span></label>
+        <input type="range" id="radius" min="0" max="80" step="1" value="0"></div>
+    </div>
+  </details>
+
+  <details class="group">
+    <summary>프리셋</summary>
+    <div class="in">
+      <div class="f"><label for="presetName">지금 설정을 이름 붙여 저장</label>
+        <div class="inline-row">
+          <input type="text" id="presetName" placeholder="예: 명조 세로형">
+          <button class="btn" id="presetSave">저장</button>
+        </div></div>
+      <div class="f"><label>저장된 프리셋</label><div class="chips" id="presetList"></div></div>
+      <p class="hint">이름을 누르면 그 설정으로 바뀌고, × 를 누르면 지워집니다. 본문 글은 저장되지 않고 서식만 담겨요.</p>
+      <div class="f" style="margin-top:16px"><label>설정 코드로 주고받기</label>
+        <div class="seg"><button id="expBtn">설정 복사</button><button id="impBtn">설정 적용</button><button id="rstBtn">초기화</button></div></div>
+      <div class="f"><textarea id="cfgBox" style="min-height:74px;font-size:12px" placeholder="설정 코드"></textarea></div>
+    </div>
+  </details>
+
+  <details class="group">
+    <summary>저장</summary>
+    <div class="in">
+      <div class="two">
+        <div class="f"><label for="scale">해상도</label>
+          <select id="scale"><option value="1">1배</option><option value="2" selected>2배 (선명)</option><option value="3">3배</option></select></div>
+        <div class="f"><label for="fmt">형식</label>
+          <select id="fmt"><option value="png" selected>PNG</option><option value="jpg">JPG</option></select></div>
+      </div>
+      <div class="f"><label for="filename">파일 이름</label><input type="text" id="filename" value="log"></div>
+    </div>
+  </details>
+</div>
+
+<div class="save">
+  <button id="helpBtn">표기법</button>
+  <button id="copyBtn">복사</button>
+  <button id="oneBtn" class="primary">이미지 저장</button>
+  <button id="splitBtn">분할 저장</button>
+</div>
+</div>
+
+<div class="modal" id="helpModal">
+  <div class="box">
+    <h4>표기법</h4>
+    <p><code># 제목</code> · <code>## 부제목</code> — 줄 맨 앞에 붙입니다.</p>
+    <p><code>&gt; 대사</code> 왼쪽 말풍선 · <code>&lt; 대사</code> 오른쪽 말풍선</p>
+    <p><code>---</code> 구분선 · <code>===</code> 페이지 나눔</p>
+    <p>꾸밈은 태그로 들어갑니다 — <code>&lt;b&gt;</code> 굵게, <code>&lt;i&gt;</code> 기울임, <code>&lt;c&gt;</code> 보조색, <code>&lt;ha&gt;</code> 형광, <code>&lt;ua&gt;</code> 강조선, <code>&lt;q&gt;</code> 따옴표 강조. 툴바 버튼을 쓰면 직접 칠 일은 없어요.</p>
+    <p>따옴표·괄호 자동 감지를 켜두면 “대사”와 (속마음)은 태그 없이도 알아서 색이 잡힙니다.</p>
+  </div>
+  <button data-close>닫기</button>
+</div>
+<div class="modal" id="shotModal">
+  <div class="shots" id="shots"></div>
+  <button data-close>닫기</button>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const page=$('page'),bgLayer=$('bgLayer'),overlay=$('overlay'),content=$('content'),
+      jpWrap=$('jpWrap'),titleBox=$('titleBox'),flow=$('flow'),footBox=$('footBox'),ta=$('text');
+const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+let ratio='auto',bgMode='solid',chatStyle='kakao',align='left',brMode='keep-all',cols=1,weight='300';
+let bgImg=null,customFont=null,photos=[],zoom=1;
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const V=id=>+$(id).value||0;
+const S=id=>$(id).value;
+
+const TAGMAP={b:'tb',i:'ti',c:'c2',q:'qb',ha:'hl hA',hb:'hl hB',hc:'hl hC',ua:'ul uA',ub:'ul uB'};
+function inline(s){
+  if($('smQuote').checked) s=s.replace(/[“"]([^”"]{1,300})[”"]/g,(m,g)=>'<c>“'+g+'”</c>');
+  if($('smBracket').checked) s=s.replace(/\(([^)]{1,300})\)/g,(m,g)=>'<brk>('+g+')</brk>');
+  s=esc(s);
+  s=s.replace(/&lt;(\/?)(b|i|c|q|ha|hb|hc|ua|ub|brk)&gt;/gi,(m,sl,tag)=>{
+    if(sl) return '</span>';
+    tag=tag.toLowerCase();
+    return '<span class="'+(tag==='brk'?'brk':TAGMAP[tag])+'">';
+  });
+  return s.replace(/\[사진(\d+)\]/g,(m,n)=>photos[+n-1]?`<img class="ph" src="${photos[+n-1]}">`:'');
+}
+
+function parse(){
+  const lines=ta.value.split('\n'), pages=[];
+  let buf='',chat=null,last=null;
+  const closeChat=()=>{if(chat!==null){buf+='<div class="chat">'+chat+'</div>';chat=null;last=null;}};
+  const flush=()=>{closeChat();pages.push(buf);buf='';};
+  lines.forEach(line=>{
+    const t=line.trim();
+    if(t==='==='){flush();return;}
+    const b=line.match(/^\s*([<>])\s?(.*)$/);
+    if(b){
+      const side=b[1]==='>'?'left':'right';
+      if(chat===null) chat='';
+      const nm=(side==='left'?S('leftName'):S('rightName')).trim();
+      const nick=(side!==last&&nm)?`<div class="nick">${esc(nm)}</div>`:'';
+      chat+=`<div class="msg ${side}">${nick}<div class="bubble">${inline(b[2])||'&nbsp;'}</div></div>`;
+      last=side; return;
+    }
+    closeChat();
+    if(t==='---'){buf+='<hr class="rule">';return;}
+    if(t.startsWith('## ')){buf+='<p class="h2">'+inline(t.slice(3))+'</p>';return;}
+    if(t.startsWith('# ')){buf+='<p class="h1">'+inline(t.slice(2))+'</p>';return;}
+    buf+= t?'<p>'+inline(line)+'</p>':'<p>&nbsp;</p>';
+  });
+  flush();
+  return pages;
+}
+
+function render(){
+  const t=S('title').trim(),s=S('subtitle').trim();
+  titleBox.innerHTML=(t?`<p class="h1">${inline(t)}</p>`:'')+(s?`<p class="h2">${inline(s)}</p>`:'');
+  titleBox.style.display=(t||s)?'':'none';
+  const f=S('foot').trim();
+  footBox.innerHTML=f?inline(f):''; footBox.style.display=f?'':'none';
+  const pages=parse();
+  flow.innerHTML=pages.length?pages.map(p=>p||'<p>&nbsp;</p>').join('<hr class="pbrk preview-only">')
+    :'<p style="opacity:.35">내용을 입력해 보세요.</p>';
+  apply();
+}
+
+const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;};
+
+function apply(){
+  const fam=S('font')==='__custom__'?(customFont?`'${customFont}',sans-serif`:'sans-serif'):S('font');
+  jpWrap.style.fontFamily=fam; jpWrap.style.fontWeight=weight; jpWrap.style.color=S('color');
+  jpWrap.style.textShadow=$('smShadow').checked?'0 1px 2px rgba(0,0,0,.28)':'none';
+
+  flow.style.fontSize=V('size')+'px';
+  flow.style.letterSpacing=S('ls')+'px';
+  flow.style.lineHeight=V('lh')+'px';
+  flow.style.textAlign=align; flow.style.wordBreak=brMode;
+  flow.style.setProperty('--pgap',V('pgap')+'px');
+  flow.classList.toggle('cols2',cols===2);
+  page.style.setProperty('--jp',(V('jp')||100)/100);
+
+  titleBox.style.textAlign=S('titleAlign');
+  titleBox.style.marginBottom=V('titleGap')+'px';
+  document.querySelectorAll('#titleBox .h1,#flow .h1').forEach(e=>e.style.fontSize=V('titleSize')+'px');
+  document.querySelectorAll('#titleBox .h2,#flow .h2').forEach(e=>e.style.fontSize=V('subSize')+'px');
+  footBox.style.fontSize=V('footSize')+'px';
+  footBox.style.textAlign=S('footAlign');
+  footBox.style.marginTop=V('footGap')+'px';
+  flow.querySelectorAll('img.ph').forEach(i=>i.style.width=V('phW')+'%');
+
+  document.querySelectorAll('.c2').forEach(e=>e.style.color=S('c2'));
+  document.querySelectorAll('.hA').forEach(e=>e.style.background=S('haC'));
+  document.querySelectorAll('.hB').forEach(e=>e.style.background=S('hbC'));
+  document.querySelectorAll('.hC').forEach(e=>e.style.background=S('hcC'));
+  document.querySelectorAll('.uA').forEach(e=>e.style.backgroundImage=`linear-gradient(${S('uaC')},${S('uaC')})`);
+  document.querySelectorAll('.uB').forEach(e=>e.style.backgroundImage=`linear-gradient(${S('ubC')},${S('ubC')})`);
+
+  document.querySelectorAll('.chat').forEach(c=>{
+    c.style.background=chatStyle==='plain'?'transparent':S('chatBg');
+    c.style.padding=chatStyle==='plain'?'0':V('cPad')+'px';
+    c.style.fontSize=V('cSize')+'px'; c.style.lineHeight=V('cLh')+'px';
+    c.style.margin='0 0 '+V('pgap')+'px';
+  });
+  document.querySelectorAll('.msg').forEach(m=>m.style.marginBottom=V('cGap')+'px');
+  document.querySelectorAll('.nick').forEach(n=>n.style.margin='0 0 '+V('cName')+'px 2px');
+  document.querySelectorAll('.bubble').forEach(b=>{
+    const R=b.closest('.msg').classList.contains('right');
+    b.style.background=R?S('rightBg'):S('leftBg');
+    b.style.color=R?S('rightFg'):S('leftFg');
+    b.style.maxWidth=V('cW')+'%';
+    b.style.padding=Math.round(V('cPad')*.7)+'px '+V('cPad')+'px';
+  });
+
+  const W=V('width'); page.style.width=W+'px';
+  let H=null;
+  if(ratio!=='auto'){const[a,b]=ratio.split(':').map(Number);H=Math.round(W*b/a);}
+  page.style.height=H?H+'px':'auto';
+  content.style.justifyContent=H?S('vAlign'):'flex-start';
+  $('vAlignF').style.display=H?'':'none';
+  content.style.padding=V('pv')+'px '+V('ph')+'px';
+  page.style.borderRadius=V('radius')+'px';
+  page.style.border=V('borderW')?V('borderW')+'px solid '+S('borderC'):'none';
+
+  bgLayer.style.inset='0'; bgLayer.style.filter='none'; overlay.style.background='transparent';
+  if(bgMode==='solid') bgLayer.style.background=S('bg1');
+  else if(bgMode==='g2') bgLayer.style.background=`linear-gradient(${V('bgAngle')}deg,${S('bg1')},${S('bg2')})`;
+  else if(bgMode==='g3') bgLayer.style.background=`linear-gradient(${V('bgAngle')}deg,${S('bg1')},${S('bg2')},${S('bg3')})`;
+  else if(bgMode==='image'){
+    bgLayer.style.background=bgImg?`${S('bg1')} url(${bgImg}) center/cover no-repeat`:S('bg1');
+    if(V('bgBlur')){bgLayer.style.filter=`blur(${V('bgBlur')}px)`;bgLayer.style.inset=-V('bgBlur')*2+'px';}
+    overlay.style.background=hexA(S('ovColor'),V('ovAlpha')/100);
+  } else bgLayer.style.background='transparent';
+
+  const put=(id,txt)=>{const e=$(id);if(e)e.textContent=txt;};
+  put('sizeV',V('size')+'px'); put('lsV',S('ls')+'px'); put('lhV',V('lh')+'px');
+  put('pgapV',V('pgap')+'px'); put('jpV',V('jp')+'%'); put('phWV',V('phW')+'%');
+  put('titleSizeV',V('titleSize')+'px'); put('subSizeV',V('subSize')+'px');
+  put('titleGapV',V('titleGap')+'px'); put('footSizeV',V('footSize')+'px'); put('footGapV',V('footGap')+'px');
+  put('cSizeV',V('cSize')+'px'); put('cLhV',V('cLh')+'px'); put('cPadV',V('cPad')+'px');
+  put('cGapV',V('cGap')+'px'); put('cNameV',V('cName')+'px'); put('cWV',V('cW')+'%');
+  put('widthV',W+'px'); put('phV',V('ph')+'px'); put('pvV',V('pv')+'px');
+  put('bgAngleV',V('bgAngle')+'°'); put('ovAlphaV',V('ovAlpha')+'%'); put('bgBlurV',V('bgBlur')+'px');
+  put('borderWV',V('borderW')+'px'); put('radiusV',V('radius')+'px');
+
+  $('warn').style.display=(ratio!=='auto'&&jpWrap.scrollHeight>content.clientHeight+2)?'block':'none';
+  applyZoom();
+}
+
+/* 줌 */
+function applyZoom(){
+  $('zoom').style.transform=`scale(${zoom})`;
+  $('zoom').style.width=page.offsetWidth*zoom+'px';
+  $('zoom').style.height=page.offsetHeight*zoom+'px';
+  $('zPct').textContent=Math.round(zoom*100)+'%';
+  $('zoomR').value=Math.round(zoom*100);
+}
+const setZoom=z=>{zoom=Math.min(2,Math.max(.15,z));applyZoom();};
+const fitZoom=()=>setZoom(Math.min(1,($('stage').clientWidth-34)/page.offsetWidth));
+$('zIn').onclick=()=>setZoom(zoom+.1);
+$('zOut').onclick=()=>setZoom(zoom-.1);
+$('zoomR').oninput=e=>setZoom(e.target.value/100);
+$('zFit').onclick=fitZoom;
+window.addEventListener('resize',fitZoom);
+let pd=0,pz=1;
+$('stage').addEventListener('touchstart',e=>{
+  if(e.touches.length===2){pd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);pz=zoom;}
+},{passive:true});
+$('stage').addEventListener('touchmove',e=>{
+  if(e.touches.length===2&&pd){
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    setZoom(pz*d/pd);
+  }
+},{passive:true});
+$('stage').addEventListener('touchend',()=>{pd=0;});
+
+/* 입력 */
+const RE=['text','title','subtitle','foot','leftName','rightName','smQuote','smBracket'];
+$('rail').addEventListener('input',e=>{
+  if(e.target.id==='cfgBox'||e.target.id==='presetName') return;
+  RE.includes(e.target.id)?render():apply();
+});
+$('rail').addEventListener('change',e=>{if(e.target.type==='checkbox')render();});
+
+function seg(id,key,cb){$(id).addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  [...$(id).children].forEach(x=>x.setAttribute('aria-pressed',x===b)); cb(b.dataset[key]);
+});}
+seg('ratioSeg','ratio',v=>{ratio=v;apply();});
+seg('colSeg','col',v=>{cols=+v;apply();});
+seg('alignSeg','align',v=>{align=v;apply();});
+seg('brSeg','br',v=>{brMode=v;apply();});
+seg('wSeg','w',v=>{weight=v;apply();});
+seg('chatSeg','style',v=>{
+  chatStyle=v;
+  if(v==='kakao'){$('chatBg').value='#b2c7da';$('leftBg').value='#ffffff';$('leftFg').value='#1a1a1a';$('rightBg').value='#fee500';$('rightFg').value='#1a1a1a';}
+  if(v==='imsg'){$('chatBg').value='#ffffff';$('leftBg').value='#e9e9eb';$('leftFg').value='#111111';$('rightBg').value='#0a84ff';$('rightFg').value='#ffffff';}
+  apply();
+});
+seg('bgSeg','mode',v=>{
+  bgMode=v;
+  $('bg2W').style.display=(v==='g2'||v==='g3')?'':'none';
+  $('bg3W').style.display=v==='g3'?'':'none';
+  $('bgAngleF').style.display=(v==='g2'||v==='g3')?'':'none';
+  $('bgImgF').style.display=v==='image'?'':'none';
+  $('bgColors').style.display=v==='none'?'none':'';
+  apply();
+});
+
+/* 툴바 */
+const sel=()=>[ta.selectionStart,ta.selectionEnd];
+function put(str,a,b,caret){
+  ta.value=ta.value.slice(0,a)+str+ta.value.slice(b);
+  ta.focus(); const c=caret??a+str.length; ta.setSelectionRange(c,c); render();
+}
+function wrap(tag){
+  const[a,b]=sel(); const t=ta.value.slice(a,b)||'내용';
+  put(`<${tag}>${t}</${tag}>`,a,b,a+tag.length+2+t.length);
+}
+$('toolbar').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  const[a,z]=sel();
+  if(b.dataset.wrap) return wrap(b.dataset.wrap);
+  if(b.dataset.block) return put('\n'+b.dataset.block+'\n',a,z);
+  if(b.dataset.line){const s=ta.value.lastIndexOf('\n',a-1)+1;return put(b.dataset.line,s,s);}
+  const act=b.dataset.act;
+  if(act==='clear'){if(confirm('본문을 모두 지울까요?')){ta.value='';render();}}
+  else if(act==='quote'){const t=ta.value.slice(a,z)||'대사';put('“'+t+'”',a,z);}
+  else if(act==='photo'){$('photoFile').click();}
+});
+document.querySelectorAll('[data-mark]').forEach(btn=>btn.addEventListener('click',()=>{
+  const[s,e]=sel(),val=ta.value,mark=btn.dataset.mark;
+  const a=val.lastIndexOf('\n',s-1)+1; let b=val.indexOf('\n',e); if(b<0)b=val.length;
+  const out=val.slice(a,b).split('\n').map(l=>{const c=l.replace(/^\s*[<>]\s?/,'');return mark?mark+' '+c:c;}).join('\n');
+  ta.value=val.slice(0,a)+out+val.slice(b); ta.setSelectionRange(a,a+out.length); render(); ta.focus();
+}));
+$('photoFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{photos.push(ev.target.result);const[a,b]=sel();put('\n[사진'+photos.length+']\n',a,b);};
+  r.readAsDataURL(f); e.target.value='';
+});
+$('bgFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=ev=>{bgImg=ev.target.result;apply();}; r.readAsDataURL(f);
+});
+$('fontFile').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const face=new FontFace('UF'+Date.now(),await f.arrayBuffer());
+  await face.load(); document.fonts.add(face); customFont=face.family;
+  $('font').value='__custom__'; apply();
+});
+
+/* ===== 설정 · 프리셋 ===== */
+const SKIP=['cfgBox','presetName','text','title','subtitle','foot','filename'];
+const fields=()=>[...document.querySelectorAll('#rail input,#rail select,#rail textarea')]
+  .filter(el=>el.id&&el.type!=='file'&&!SKIP.includes(el.id));
+function collect(){
+  const o={_r:ratio,_bg:bgMode,_c:chatStyle,_a:align,_br:brMode,_col:cols,_w:weight};
+  fields().forEach(el=>o[el.id]=el.type==='checkbox'?el.checked:el.value);
+  return o;
+}
+function applyCfg(o){
+  fields().forEach(el=>{if(o[el.id]!==undefined){el.type==='checkbox'?el.checked=o[el.id]:el.value=o[el.id];}});
+  if(o._r)ratio=o._r; if(o._bg)bgMode=o._bg; if(o._c)chatStyle=o._c;
+  if(o._a)align=o._a; if(o._br)brMode=o._br; if(o._col)cols=+o._col; if(o._w)weight=o._w;
+  const m=(id,k,v)=>[...$(id).children].forEach(b=>b.setAttribute('aria-pressed',b.dataset[k]==String(v)));
+  m('ratioSeg','ratio',ratio);m('bgSeg','mode',bgMode);m('chatSeg','style',chatStyle);
+  m('alignSeg','align',align);m('brSeg','br',brMode);m('colSeg','col',cols);m('wSeg','w',weight);
+  $('bg2W').style.display=(bgMode==='g2'||bgMode==='g3')?'':'none';
+  $('bg3W').style.display=bgMode==='g3'?'':'none';
+  $('bgAngleF').style.display=(bgMode==='g2'||bgMode==='g3')?'':'none';
+  $('bgImgF').style.display=bgMode==='image'?'':'none';
+  $('bgColors').style.display=bgMode==='none'?'none':'';
+  render();
+}
+
+const KEY='logmaker.presets';
+let presets={};
+try{presets=JSON.parse(localStorage.getItem(KEY)||'{}');}catch(_){presets={};}
+function keepPresets(){try{localStorage.setItem(KEY,JSON.stringify(presets));}catch(_){}}
+function drawPresets(){
+  const names=Object.keys(presets);
+  $('presetList').innerHTML=names.length
+    ? names.map(n=>`<span class="chip"><button class="load" data-load="${encodeURIComponent(n)}">${n.replace(/</g,'&lt;')}</button><button class="del" data-del="${encodeURIComponent(n)}">×</button></span>`).join('')
+    : '<span class="empty">아직 저장한 프리셋이 없어요.</span>';
+}
+$('presetSave').onclick=()=>{
+  const n=S('presetName').trim();
+  if(!n) return $('presetName').focus();
+  presets[n]=collect(); keepPresets(); drawPresets(); $('presetName').value='';
+  $('presetSave').textContent='저장됨'; setTimeout(()=>$('presetSave').textContent='저장',1300);
+};
+$('presetList').onclick=e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.load){ applyCfg(presets[decodeURIComponent(b.dataset.load)]); }
+  else if(b.dataset.del){
+    const n=decodeURIComponent(b.dataset.del);
+    if(confirm(`‘${n}’ 프리셋을 지울까요?`)){delete presets[n];keepPresets();drawPresets();}
+  }
+};
+drawPresets();
+
+$('expBtn').onclick=()=>{
+  $('cfgBox').value=JSON.stringify(collect());
+  try{navigator.clipboard.writeText($('cfgBox').value);}catch(_){}
+  $('expBtn').textContent='복사됨'; setTimeout(()=>$('expBtn').textContent='설정 복사',1400);
+};
+$('impBtn').onclick=()=>{
+  try{applyCfg(JSON.parse($('cfgBox').value));}
+  catch(_){$('impBtn').textContent='코드 확인';setTimeout(()=>$('impBtn').textContent='설정 적용',1600);}
+};
+$('rstBtn').onclick=()=>{if(confirm('모두 초기화할까요? (프리셋은 남습니다)'))location.reload();};
+
+/* 저장 */
+async function shoot(){
+  await document.fonts.ready;
+  document.body.classList.add('capturing');
+  const z=zoom; $('zoom').style.transform='scale(1)';
+  try{
+    return await html2canvas(page,{scale:+S('scale'),
+      backgroundColor:bgMode==='none'?null:'#ffffff',useCORS:true,logging:false});
+  } finally{document.body.classList.remove('capturing');$('zoom').style.transform=`scale(${z})`;}
+}
+function dl(canvas,name){
+  const fmt=S('fmt');
+  const url=canvas.toDataURL(fmt==='png'?'image/png':'image/jpeg',.95);
+  if(isIOS) return url;
+  const a=document.createElement('a'); a.href=url; a.download=name+'.'+fmt; a.click(); return null;
+}
+function showShots(urls){
+  $('shots').innerHTML=urls.map(u=>`<img src="${u}">`).join('')+
+    '<p style="color:#fff;font-size:13px;text-align:center">이미지를 길게 눌러 ‘사진에 추가’</p>';
+  $('shotModal').classList.add('on');
+}
+$('oneBtn').onclick=async()=>{
+  const b=$('oneBtn'),t=b.textContent; b.disabled=true; b.textContent='저장 중…';
+  try{const u=dl(await shoot(),S('filename').trim()||'log'); if(u)showShots([u]);}
+  catch(err){console.error(err);alert('저장에 실패했어요.');}
+  finally{b.disabled=false;b.textContent=t;}
+};
+$('splitBtn').onclick=async()=>{
+  const b=$('splitBtn'),t=b.textContent; b.disabled=true;
+  const pages=parse(),base=S('filename').trim()||'log',urls=[],keep=flow.innerHTML;
+  try{
+    for(let i=0;i<pages.length;i++){
+      b.textContent=`${i+1}/${pages.length}`;
+      flow.innerHTML=pages[i]||'<p>&nbsp;</p>'; apply();
+      await new Promise(r=>setTimeout(r,90));
+      const u=dl(await shoot(),`${base}_${i+1}`);
+      if(u) urls.push(u); else await new Promise(r=>setTimeout(r,320));
+    }
+    if(urls.length) showShots(urls);
+  }catch(err){console.error(err);alert('저장에 실패했어요.');}
+  finally{flow.innerHTML=keep;apply();b.disabled=false;b.textContent=t;}
+};
+$('copyBtn').onclick=async()=>{
+  const b=$('copyBtn'); b.disabled=true; b.textContent='복사 중…';
+  try{
+    await navigator.clipboard.write([new ClipboardItem({'image/png':
+      shoot().then(c=>new Promise(r=>c.toBlob(r,'image/png')))})]);
+    b.textContent='복사됨';
+  }catch(err){console.error(err);b.textContent='복사 불가';}
+  finally{setTimeout(()=>{b.textContent='복사';b.disabled=false;},1600);}
+};
+$('helpBtn').onclick=()=>$('helpModal').classList.add('on');
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('.modal').classList.remove('on'));
+
+ta.value=`# 불의 센티넬
+## EDEN — 03
+
+이것이 나의 세니였다. 내가 사랑하는, 나를 사랑하는 불의 센티넬.
+자신의 것을 지키기 위해서라면 세상 전부를 적으로 돌릴 수도 있는 여자.
+
+> 정말 괜찮은 거야?
+< 응, 이제 괜찮아. (거짓말이었다.)
+
+---
+그날의 온도를 오래 기억할 것 같았다.`;
+$('foot').value='EDEN';
+render(); setTimeout(fitZoom,120);
+</script>
+</body>
+</html>
