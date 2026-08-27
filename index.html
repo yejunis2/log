@@ -80,6 +80,8 @@ body.capturing .preview-only{display:none!important;}
 .group[open]>summary::after{content:'▴';}
 .group>summary:hover{background:#fdf5f8;}
 .group .in{padding:0 18px 18px;}
+.group .in h3.lbl{margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--line);
+  font-size:13px;font-weight:700;color:var(--ink);}
 .f{margin-bottom:14px;}
 .f:last-child{margin-bottom:0;}
 .f>label{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--sub);margin-bottom:6px;}
@@ -150,8 +152,9 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
 @media (min-width:960px){
   body{flex-direction:row;}
   .stage{flex:1 1 auto;height:100dvh;}
-  .side{width:390px;flex:0 0 390px;display:flex;flex-direction:column;height:100dvh;border-left:1px solid var(--line);background:var(--card);}
+  .side{width:440px;flex:0 0 440px;display:flex;flex-direction:column;height:100dvh;border-left:1px solid var(--line);background:var(--card);}
   .rail{flex:1 1 auto;border-top:0;}
+  #text{min-height:330px;}
 }
 </style>
 </head>
@@ -180,7 +183,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
 <div class="rail" id="rail">
 
   <details class="group" open>
-    <summary>본문</summary>
+    <summary>콘텐츠</summary>
     <div class="in">
       <div class="f"><textarea id="text" placeholder="로그를 붙여넣으세요" autocorrect="off" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea></div>
       <div class="toolbar" id="toolbar">
@@ -191,6 +194,8 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <button data-wrap="ha">형광 A</button>
         <button data-wrap="hb">형광 B</button>
         <button data-wrap="q">따옴표 강조</button>
+        <button data-mark="|a">강조 A</button>
+        <button data-mark="|b">강조 B</button>
         <button class="blk" data-act="photo">사진</button>
         <button class="blk" data-block="---">구분선</button>
         <button class="blk" data-block="===">페이지 나눔</button>
@@ -201,18 +206,11 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <button data-mark="&lt;">오른쪽 말풍선</button>
       </div>
       <div class="seg" style="margin-top:6px">
-        <button data-mark="|a">강조 A</button>
-        <button data-mark="|b">강조 B</button>
         <button data-mark="">줄 표시 해제</button>
       </div>
       <input type="file" id="photoFile" accept="image/*" style="display:none">
       <p class="hint"><code>===</code> 는 페이지가 나뉘는 자리예요. 분할 저장을 누르면 그 지점마다 한 장씩 만들어집니다.</p>
-    </div>
-  </details>
-
-  <details class="group">
-    <summary>제목, 하단</summary>
-    <div class="in">
+      <h3 class="lbl">제목 · 하단</h3>
       <div class="f"><label for="title">제목</label><input type="text" id="title" placeholder="비워도 됨"></div>
       <div class="f"><label for="subtitle">소제목</label><input type="text" id="subtitle" placeholder="비워도 됨"></div>
       <div class="two">
@@ -240,7 +238,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   </details>
 
   <details class="group">
-    <summary>폰트</summary>
+    <summary>글자</summary>
     <div class="in">
       <div class="f"><label for="font">글꼴</label>
         <select id="font">
@@ -261,12 +259,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
           <button data-w="200">얇게</button><button data-w="300" aria-pressed="true">약간 얇게</button>
           <button data-w="400">보통</button><button data-w="500">약간 굵게</button><button data-w="700">굵게</button>
         </div></div>
-    </div>
-  </details>
-
-  <details class="group">
-    <summary>정렬</summary>
-    <div class="in">
+      <h3 class="lbl">조판</h3>
       <div class="two">
         <div class="f"><label>정렬</label>
           <div class="seg" id="alignSeg">
@@ -290,12 +283,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <div class="f"><label>사진 너비 <span class="v" id="phWV">100%</span></label>
           <input type="range" id="phW" min="20" max="100" step="5" value="100"></div>
       </div>
-    </div>
-  </details>
-
-  <details class="group">
-    <summary>색상</summary>
-    <div class="in">
+      <h3 class="lbl">색과 강조</h3>
       <div class="two">
         <div class="sw"><input type="color" id="color" value="#3b3b3b"><span>글자색</span></div>
         <div class="sw"><input type="color" id="c2" value="#5b62c0"><span>보조색</span></div>
@@ -350,7 +338,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   </details>
 
   <details class="group">
-    <summary>비율</summary>
+    <summary>캔버스</summary>
     <div class="in">
       <div class="f"><label>비율</label>
         <div class="seg wrap" id="ratioSeg">
@@ -369,12 +357,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
       </div>
       <div class="f" id="vAlignF" style="display:none"><label for="vAlign">세로 위치</label>
         <select id="vAlign"><option value="flex-start">위</option><option value="center" selected>가운데</option><option value="flex-end">아래</option></select></div>
-    </div>
-  </details>
-
-  <details class="group">
-    <summary>배경</summary>
-    <div class="in">
+      <h3 class="lbl">배경</h3>
       <div class="f"><div class="seg wrap" id="bgSeg">
         <button data-mode="solid" aria-pressed="true">단색</button><button data-mode="g2">그라데이션</button>
         <button data-mode="image">이미지</button><button data-mode="none">투명</button>
@@ -407,7 +390,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   </details>
 
   <details class="group">
-    <summary>프리셋</summary>
+    <summary>프리셋 · 저장</summary>
     <div class="in">
       <div class="f"><label for="presetName">지금 설정을 이름 붙여 저장</label>
         <div class="inline-row">
@@ -419,12 +402,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
       <div class="f" style="margin-top:16px"><label>설정 코드로 주고받기</label>
         <div class="seg"><button id="expBtn">설정 복사</button><button id="impBtn">설정 적용</button><button id="rstBtn">초기화</button></div></div>
       <div class="f"><textarea id="cfgBox" style="min-height:74px;font-size:12px" placeholder="설정 코드"></textarea></div>
-    </div>
-  </details>
-
-  <details class="group">
-    <summary>저장</summary>
-    <div class="in">
+      <h3 class="lbl">저장 설정</h3>
       <div class="two">
         <div class="f"><label for="scale">해상도</label>
           <select id="scale"><option value="1">1배</option><option value="2" selected>2배 (선명)</option><option value="3">3배</option></select></div>
@@ -485,11 +463,11 @@ function inline(s){
 }
 
 function parse(){
-  const lines=ta.value.split('\n'), pages=[];
-  let buf='',para=[],chat=null,last=null,bar=[],barType=null;
-  const flushPara=()=>{if(para.length){buf+='<p>'+para.join('\n')+'</p>';para=[];}};
-  const closeChat=()=>{if(chat!==null){buf+='<div class="chat">'+chat+'</div>';chat=null;last=null;}};
-  const closeBar=()=>{if(bar.length){buf+='<div class="qbar q'+barType+'"><p>'+bar.join('\n')+'</p></div>';bar=[];barType=null;}};
+  const lines=ta.value.replace(/\s+$/,'').split('\n'), pages=[];
+  let buf='',para=[],chat=null,last=null,bar=[],barType=null,lastBlock=false;
+  const flushPara=()=>{if(para.length){buf+='<p>'+para.join('\n')+'</p>';para=[];lastBlock=false;}};
+  const closeChat=()=>{if(chat!==null){buf+='<div class="chat">'+chat+'</div>';chat=null;last=null;lastBlock=true;}};
+  const closeBar=()=>{if(bar.length){buf+='<div class="qbar q'+barType+'"><p>'+bar.join('\n')+'</p></div>';bar=[];barType=null;lastBlock=true;}};
   const flushPage=()=>{flushPara();closeChat();closeBar();pages.push(buf);buf='';};
 
   lines.forEach(line=>{
@@ -516,8 +494,12 @@ function parse(){
     }
 
     closeChat(); closeBar();
-    if(t==='---'){flushPara();buf+='<hr class="rule">';return;}
-    if(!t){ para.length?flushPara():buf+='<p>&nbsp;</p>'; return; }
+    if(t==='---'){flushPara();buf+='<hr class="rule">';lastBlock=true;return;}
+    if(!t){
+      if(para.length) flushPara();
+      else if(!lastBlock){ buf+='<p>&nbsp;</p>'; }
+      return;
+    }
     para.push(inline(line));
   });
   flushPage();
