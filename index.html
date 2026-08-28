@@ -44,7 +44,8 @@ body.capturing .preview-only{display:none!important;}
 #bgLayer,#overlay{position:absolute;inset:0;}
 #bgLayer{background-size:cover;background-position:center;}
 #content{position:relative;height:100%;display:flex;flex-direction:column;padding:70px 50px;}
-#jpWrap{width:calc(100% / var(--jp));transform:scaleX(var(--jp));transform-origin:left top;}
+#jpWrap{width:calc(100% / var(--jp));transform:scaleX(var(--jp));transform-origin:left top;position:relative;z-index:1;}
+#hlLayer{position:absolute;inset:0;z-index:0;pointer-events:none;}
 #flow.cols2{column-count:2;column-gap:44px;}
 #flow{word-break:keep-all;overflow-wrap:break-word;white-space:pre-wrap;}
 #flow p{margin:0 0 var(--pgap,14px);}
@@ -54,7 +55,7 @@ body.capturing .preview-only{display:none!important;}
 #flow .pbrk{border:0;border-top:2px dashed #f0b6cb;margin:26px 0;}
 #flow img.ph{max-width:100%;display:block;margin:14px auto;border-radius:6px;}
 .tb{font-weight:700}.ti{font-style:italic}.qb{font-weight:600}
-.hl{border-radius:3px;padding:0 3px;}
+.hl{border-radius:2px;padding:0 2px;}
 #flow .qbar{border-left:3px solid #6bb3ae;padding-left:16px;margin:0 0 var(--pgap,14px);}
 #flow .qbar p:last-child{margin-bottom:0;}
 .brk{opacity:.72;}
@@ -181,7 +182,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   <div class="stage-inner"><div id="zoom">
     <div id="page">
       <div id="bgLayer"></div><div id="overlay"></div>
-      <div id="content"><div id="jpWrap">
+      <div id="content"><div id="hlLayer"></div><div id="jpWrap">
         <div id="titleBox"></div><div id="flow"></div><div id="footBox"></div>
       </div></div>
     </div>
@@ -647,6 +648,7 @@ function apply(){
   put('bgAngleV',V('bgAngle')+'°'); put('ovAlphaV',V('ovAlpha')+'%'); put('bgBlurV',V('bgBlur')+'px');
   put('borderWV',V('borderW')+'px'); put('radiusV',V('radius')+'px');
 
+  if(typeof paintHL==='function') paintHL();
   $('warn').style.display=(ratio!=='auto'&&jpWrap.scrollHeight>content.clientHeight+2)?'block':'none';
   applyZoom();
 }
@@ -787,30 +789,48 @@ function markBlocks(cls){
   sl.removeAllRanges();
   render(); ed.focus();
 }
-function wrapRange(r,cls){
-  const span=document.createElement('span'); span.className=cls;
-  try{ r.surroundContents(span); }
-  catch(_){ span.appendChild(r.extractContents()); r.insertNode(span); }
-}
 function wrapSel(cls){
   const sl=window.getSelection();
   if(!sl.rangeCount||sl.isCollapsed){ ed.focus(); return; }
   const r=sl.getRangeAt(0);
   if(!ed.contains(r.commonAncestorContainer)){ ed.focus(); return; }
-  ensureBlocks();
-  const blocks=[...ed.children].filter(b=>{try{return r.intersectsNode(b);}catch(_){return false;}});
-  if(blocks.length<=1){
-    wrapRange(r,cls);
-  }else{
-    // 뒤에서부터 처리해야 앞쪽 선택 지점이 유효하게 남음
-    blocks.slice().reverse().forEach(b=>{
-      const rr=document.createRange();
-      rr.selectNodeContents(b);
-      if(b.contains(r.endContainer)||b===r.endContainer) rr.setEnd(r.endContainer,r.endOffset);
-      if(b.contains(r.startContainer)||b===r.startContainer) rr.setStart(r.startContainer,r.startOffset);
-      if(rr.toString().length) wrapRange(rr,cls);
-    });
+
+  // 범위에 걸친 텍스트 조각만 각각 감싼다 (내용을 옮기지 않으므로 글자가 사라지지 않음)
+  const walker=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT,null);
+  const hits=[]; let n;
+  while((n=walker.nextNode())){
+    if(!n.nodeValue||!n.nodeValue.length) continue;
+    let ok=false;
+    try{ ok=r.intersectsNode(n); }catch(_){ ok=false; }
+    if(ok) hits.push(n);
   }
+  hits.forEach(node=>{
+    const len=node.nodeValue.length;
+    let start=(node===r.startContainer)?r.startOffset:0;
+    let end=(node===r.endContainer)?r.endOffset:len;
+    if(end>len) end=len;
+    if(end<=start) return;
+
+    let target=node;
+    if(end<len) target.splitText(end);
+    if(start>0) target=target.splitText(start);
+
+    // 줄바꿈은 색칠 밖으로 빼서 상자처럼 번지지 않게
+    const parts=target.nodeValue.split('\n');
+    const frag=document.createDocumentFragment();
+    parts.forEach((pt,idx)=>{
+      if(idx) frag.appendChild(document.createTextNode('\n'));
+      if(!pt) return;
+      if(/^\s*$/.test(pt)){ frag.appendChild(document.createTextNode(pt)); return; }
+      const head=pt.match(/^\s*/)[0], tail=pt.match(/\s*$/)[0];
+      const core=pt.slice(head.length, pt.length-tail.length);
+      if(head) frag.appendChild(document.createTextNode(head));
+      const sp=document.createElement('span'); sp.className=cls; sp.textContent=core;
+      frag.appendChild(sp);
+      if(tail) frag.appendChild(document.createTextNode(tail));
+    });
+    target.parentNode.replaceChild(frag,target);
+  });
   sl.removeAllRanges();
   render(); ed.focus();
 }
@@ -915,14 +935,40 @@ $('impBtn').onclick=()=>{
 $('rstBtn').onclick=()=>{if(confirm('모두 초기화할까요? (프리셋은 남습니다)'))location.reload();};
 
 /* 저장 */
+// 여러 줄에 걸친 형광은 저장 라이브러리가 하나의 큰 상자로 뭉개므로,
+// 글자는 건드리지 않고 줄마다 사각형을 뒤에 깔아 칠한다.
+function paintHL(){
+  const layer=$('hlLayer'); if(!layer) return;
+  layer.innerHTML='';
+  const base=content.getBoundingClientRect();
+  const z=zoom||1;
+  flow.querySelectorAll('.hl').forEach(el=>{
+    const col=el.classList.contains('hA')?S('haC'):S('hbC');
+    el.style.background='transparent';
+    const r=document.createRange(); r.selectNodeContents(el);
+    [...r.getClientRects()].forEach(rc=>{
+      if(!rc.width||!rc.height) return;
+      const d=document.createElement('div');
+      d.style.cssText='position:absolute;border-radius:2px;background:'+col+
+        ';left:'+((rc.left-base.left)/z-2)+'px;top:'+((rc.top-base.top)/z)+'px'+
+        ';width:'+(rc.width/z+4)+'px;height:'+(rc.height/z)+'px';
+      layer.appendChild(d);
+    });
+  });
+}
+
 async function shoot(){
   await document.fonts.ready;
+  paintHL();
   document.body.classList.add('capturing');
   const z=zoom; $('zoom').style.transform='scale(1)';
   try{
     return await html2canvas(page,{scale:+S('scale'),
       backgroundColor:bgMode==='none'?null:'#ffffff',useCORS:true,logging:false});
-  } finally{document.body.classList.remove('capturing');$('zoom').style.transform=`scale(${z})`;}
+  } finally{
+    document.body.classList.remove('capturing');
+    $('zoom').style.transform=`scale(${z})`;
+  }
 }
 function dl(canvas,name){
   const fmt=S('fmt');
