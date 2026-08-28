@@ -787,14 +787,30 @@ function markBlocks(cls){
   sl.removeAllRanges();
   render(); ed.focus();
 }
+function wrapRange(r,cls){
+  const span=document.createElement('span'); span.className=cls;
+  try{ r.surroundContents(span); }
+  catch(_){ span.appendChild(r.extractContents()); r.insertNode(span); }
+}
 function wrapSel(cls){
   const sl=window.getSelection();
   if(!sl.rangeCount||sl.isCollapsed){ ed.focus(); return; }
   const r=sl.getRangeAt(0);
-  if(!ed.contains(r.commonAncestorContainer)) return;
-  const span=document.createElement('span'); span.className=cls;
-  try{ r.surroundContents(span); }
-  catch(_){ span.appendChild(r.extractContents()); r.insertNode(span); }
+  if(!ed.contains(r.commonAncestorContainer)){ ed.focus(); return; }
+  ensureBlocks();
+  const blocks=[...ed.children].filter(b=>{try{return r.intersectsNode(b);}catch(_){return false;}});
+  if(blocks.length<=1){
+    wrapRange(r,cls);
+  }else{
+    // 뒤에서부터 처리해야 앞쪽 선택 지점이 유효하게 남음
+    blocks.slice().reverse().forEach(b=>{
+      const rr=document.createRange();
+      rr.selectNodeContents(b);
+      if(b.contains(r.endContainer)||b===r.endContainer) rr.setEnd(r.endContainer,r.endOffset);
+      if(b.contains(r.startContainer)||b===r.startContainer) rr.setStart(r.startContainer,r.startOffset);
+      if(rr.toString().length) wrapRange(rr,cls);
+    });
+  }
   sl.removeAllRanges();
   render(); ed.focus();
 }
