@@ -203,6 +203,8 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
     <summary>콘텐츠</summary>
     <div class="in">
       <div class="toolbar" id="toolbar">
+        <button data-act="undo" title="되돌리기">↺ 되돌리기</button>
+        <button data-act="redo" title="다시 실행">↻ 다시</button>
         <button data-wrap="b"><b>굵게</b></button>
         <button data-wrap="i"><i>기울임</i></button>
         <button data-act="quote">“대사”</button>
@@ -713,6 +715,31 @@ seg('bgSeg','mode',v=>{
   apply();
 });
 
+/* 되돌리기 */
+let undoStack=[],redoStack=[],pendingSnap=null,histTimer=null;
+function pushHist(html){
+  if(undoStack[undoStack.length-1]===html) return;
+  undoStack.push(html);
+  if(undoStack.length>80) undoStack.shift();
+}
+function snap(){
+  if(pendingSnap!==null){ pushHist(pendingSnap); pendingSnap=null; clearTimeout(histTimer); }
+  pushHist(ed.innerHTML);
+  redoStack=[];
+}
+function restoreHist(html){ ed.innerHTML=html; render(); ed.focus(); }
+function undo(){
+  if(pendingSnap!==null){ pushHist(pendingSnap); pendingSnap=null; clearTimeout(histTimer); }
+  if(!undoStack.length) return;
+  redoStack.push(ed.innerHTML);
+  restoreHist(undoStack.pop());
+}
+function redo(){
+  if(!redoStack.length) return;
+  pushHist(ed.innerHTML);
+  restoreHist(redoStack.pop());
+}
+
 /* 툴바 */
 function ensureBlocks(){
   [...ed.childNodes].forEach(n=>{
@@ -763,6 +790,7 @@ function cutTail(block,node,off){
   block.parentNode.insertBefore(nb,block.nextSibling);
 }
 function markBlocks(cls){
+  snap();
   ensureBlocks();
   const sl=window.getSelection();
   if(!sl.rangeCount){ ed.focus(); return; }
@@ -794,6 +822,7 @@ function wrapSel(cls){
   if(!sl.rangeCount||sl.isCollapsed){ ed.focus(); return; }
   const r=sl.getRangeAt(0);
   if(!ed.contains(r.commonAncestorContainer)){ ed.focus(); return; }
+  snap();
 
   // 범위에 걸친 텍스트 조각만 각각 감싼다 (내용을 옮기지 않으므로 글자가 사라지지 않음)
   const walker=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT,null);
@@ -834,8 +863,19 @@ function wrapSel(cls){
   sl.removeAllRanges();
   render(); ed.focus();
 }
-function insertText(t){ ed.focus(); document.execCommand('insertText',false,t); render(); }
+function insertText(t){ snap(); ed.focus(); document.execCommand('insertText',false,t); render(); }
 
+ed.addEventListener('beforeinput',()=>{
+  if(pendingSnap===null) pendingSnap=ed.innerHTML;
+  clearTimeout(histTimer);
+  histTimer=setTimeout(()=>{ if(pendingSnap!==null){ pushHist(pendingSnap); pendingSnap=null; redoStack=[]; } },700);
+});
+ed.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'){
+    e.preventDefault();
+    e.shiftKey?redo():undo();
+  }
+});
 ed.addEventListener('paste',e=>{
   e.preventDefault();
   const t=(e.clipboardData||window.clipboardData).getData('text/plain');
@@ -847,7 +887,9 @@ $('toolbar').addEventListener('click',e=>{
   if(b.dataset.wrap) return wrapSel(TAGMAP[b.dataset.wrap]);
   if(b.dataset.block) return insertText('\n'+b.dataset.block+'\n');
   const act=b.dataset.act;
-  if(act==='clear'){ if(confirm('본문을 모두 지울까요?')){ ed.innerHTML='<div><br></div>'; render(); } }
+  if(act==='undo') return undo();
+  if(act==='redo') return redo();
+  if(act==='clear'){ if(confirm('본문을 모두 지울까요?')){ snap(); ed.innerHTML='<div><br></div>'; render(); } }
   else if(act==='quote'){
     const sl=window.getSelection();
     const t=(sl&&!sl.isCollapsed&&ed.contains(sl.anchorNode))?sl.toString():'대사';
