@@ -60,6 +60,7 @@ body.capturing .preview-only{display:none!important;}
 #flow .qbar p:last-child{margin-bottom:0;}
 .brk{opacity:.72;}
 #footBox{opacity:.75;}
+#flow .nm{margin-right:8px;}
 .chat{border-radius:10px;}
 .msg{display:flex;flex-direction:column;}
 .msg.right{align-items:flex-end;}
@@ -207,7 +208,8 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <button data-act="redo" title="다시 실행">↻ 다시</button>
         <button data-wrap="b"><b>굵게</b></button>
         <button data-wrap="i"><i>기울임</i></button>
-        <button data-act="quote">“대사”</button>
+        <button data-act="quote">“ ”</button>
+        <button data-wrap="d">대사</button>
         <button data-wrap="c">보조색</button>
         <button data-wrap="ha">형광 A</button>
         <button data-wrap="hb">형광 B</button>
@@ -248,6 +250,10 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <div class="f"><label>제목 ↔ 본문 <span class="v" id="titleGapV">28px</span></label>
           <input type="range" id="titleGap" min="0" max="140" step="2" value="28"></div>
       </div>
+      <div class="two">
+        <div class="sw"><input type="color" id="titleColor" value="#3b3b3b"><span>제목 색</span></div>
+        <div class="sw"><input type="color" id="subColor" value="#3b3b3b"><span>소제목 색</span></div>
+      </div>
       <div class="f"><label for="foot">하단</label><input type="text" id="foot" placeholder="비워도 됨"></div>
       <div class="two">
         <div class="f"><label for="footAlign">하단 배치</label>
@@ -257,6 +263,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
       </div>
       <div class="f"><label>하단 ↔ 본문 <span class="v" id="footGapV">35px</span></label>
         <input type="range" id="footGap" min="0" max="160" step="1" value="35"></div>
+      <div class="sw"><input type="color" id="footColor" value="#3b3b3b"><span>하단 색</span></div>
       </div></details>
     </div>
   </details>
@@ -319,8 +326,21 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <div class="sw"><input type="color" id="haC" value="#fbe9f2"><span>형광 A</span></div>
         <div class="sw"><input type="color" id="hbC" value="#fdf6cf"><span>형광 B</span></div>
       </div>
+      <div class="two" style="margin-top:14px">
+        <div class="f"><label for="dStyle">대사 꾸밈</label>
+          <select id="dStyle">
+            <option value="color">색만</option>
+            <option value="bold">굵게</option>
+            <option value="boldcolor">굵게 + 색</option>
+            <option value="capsule">둥근 배경</option>
+            <option value="under">밑줄</option>
+            <option value="wave">물결 밑줄</option>
+            <option value="big">살짝 크게</option>
+          </select></div>
+        <div class="sw"><input type="color" id="dColor" value="#c0698a"><span>대사 색</span></div>
+      </div>
       <div style="margin-top:8px">
-        <label class="chk"><input type="checkbox" id="smQuote"> 따옴표 자동 감지 — “대사”에 보조색</label>
+        <label class="chk"><input type="checkbox" id="smQuote"> 따옴표 자동 감지 — 문단 속 “대사”에 자동 적용</label>
         <label class="chk"><input type="checkbox" id="smBracket"> 괄호 자동 감지 — (속마음)을 흐리게</label>
         <label class="chk"><input type="checkbox" id="smShadow"> 글자 그림자</label>
       </div>
@@ -477,8 +497,8 @@ const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const V=id=>+$(id).value||0;
 const S=id=>$(id).value;
 
-const TAGMAP={b:'tb',i:'ti',c:'c2',q:'qb',ha:'hl hA',hb:'hl hB'};
-const CLS2TAG={tb:'b',ti:'i',c2:'c',qb:'q',hA:'ha',hB:'hb'};
+const TAGMAP={b:'tb',i:'ti',c:'c2',q:'qb',d:'dl',ha:'hl hA',hb:'hl hB'};
+const CLS2TAG={tb:'b',ti:'i',c2:'c',qb:'q',dl:'d',hA:'ha',hB:'hb'};
 const BLOCKMARK={mA:'|a ',mB:'|b ',mL:'> ',mR:'< '};
 const MARKCLS={'|a':'mA','|b':'mB','>':'mL','<':'mR'};
 
@@ -494,8 +514,9 @@ function serialize(root){
       if(tk){ r+='<'+CLS2TAG[tk]+'>'+ic+'</'+CLS2TAG[tk]+'>'; return; }
       if(/^(DIV|P|LI)$/.test(n.nodeName)){
         const mk=Object.keys(BLOCKMARK).find(c=>cls.includes(c));
+        let pre=mk?BLOCKMARK[mk]:'';
         if(ic==='\n') ic='';
-        r+=(r?'\n':'')+(mk?BLOCKMARK[mk]:'')+ic;
+        r+=(r?'\n':'')+pre+ic;
         return;
       }
       r+=ic;
@@ -506,10 +527,10 @@ function serialize(root){
 }
 const TXT=()=>serialize(ed);
 function inline(s){
-  if($('smQuote').checked) s=s.replace(/[“"]([^”"]{1,300})[”"]/g,(m,g)=>'<c>“'+g+'”</c>');
+  if($('smQuote').checked) s=s.replace(/[“"]([^”"]{1,300})[”"]/g,(m,g)=>'<d>“'+g+'”</d>');
   if($('smBracket').checked) s=s.replace(/\(([^)]{1,300})\)/g,(m,g)=>'<brk>('+g+')</brk>');
   s=esc(s);
-  s=s.replace(/&lt;(\/?)(b|i|c|q|ha|hb|brk)&gt;/gi,(m,sl,tag)=>{
+  s=s.replace(/&lt;(\/?)(b|i|c|q|d|ha|hb|brk)&gt;/gi,(m,sl,tag)=>{
     if(sl) return '</span>';
     tag=tag.toLowerCase();
     return '<span class="'+(tag==='brk'?'brk':TAGMAP[tag])+'">';
@@ -591,14 +612,29 @@ function apply(){
 
   titleBox.style.textAlign=S('titleAlign');
   titleBox.style.marginBottom=V('titleGap')+'px';
-  document.querySelectorAll('#titleBox .h1,#flow .h1').forEach(e=>e.style.fontSize=V('titleSize')+'px');
-  document.querySelectorAll('#titleBox .h2,#flow .h2').forEach(e=>e.style.fontSize=V('subSize')+'px');
+  document.querySelectorAll('#titleBox .h1,#flow .h1').forEach(e=>{e.style.fontSize=V('titleSize')+'px';e.style.color=S('titleColor');});
+  document.querySelectorAll('#titleBox .h2,#flow .h2').forEach(e=>{e.style.fontSize=V('subSize')+'px';e.style.color=S('subColor');e.style.opacity='1';});
   footBox.style.fontSize=V('footSize')+'px';
+  footBox.style.color=S('footColor');
+  footBox.style.opacity='1';
   footBox.style.textAlign=S('footAlign');
   footBox.style.marginTop=V('footGap')+'px';
   flow.querySelectorAll('img.ph').forEach(i=>i.style.width=V('phW')+'%');
 
   document.querySelectorAll('.c2').forEach(e=>e.style.color=S('c2'));
+  const dst=S('dStyle'),dcol=S('dColor');
+  document.querySelectorAll('.dl').forEach(e=>{
+    e.removeAttribute('data-bgpaint');
+    ['color','fontWeight','background','padding','borderRadius','textDecoration','textDecorationColor','textUnderlineOffset','fontSize']
+      .forEach(k=>e.style[k]='');
+    if(dst==='color') e.style.color=dcol;
+    else if(dst==='bold') e.style.fontWeight='700';
+    else if(dst==='boldcolor'){ e.style.fontWeight='700'; e.style.color=dcol; }
+    else if(dst==='capsule'){ e.style.background=dcol; e.style.padding='1px 7px'; e.style.borderRadius='999px'; e.setAttribute('data-bgpaint',''); }
+    else if(dst==='under'){ e.style.textDecoration='underline'; e.style.textDecorationColor=dcol; e.style.textUnderlineOffset='3px'; }
+    else if(dst==='wave'){ e.style.textDecoration='underline wavy'; e.style.textDecorationColor=dcol; e.style.textUnderlineOffset='3px'; }
+    else if(dst==='big'){ e.style.fontSize='1.06em'; e.style.color=dcol; }
+  });
   document.querySelectorAll('.hA').forEach(e=>e.style.background=S('haC'));
   document.querySelectorAll('.hB').forEach(e=>e.style.background=S('hbC'));
   document.querySelectorAll('.qA,.mA').forEach(e=>e.style.borderLeftColor=S('uaC'));
@@ -715,6 +751,26 @@ seg('bgSeg','mode',v=>{
   apply();
 });
 
+/* 선택 영역 기억 — 버튼을 누르면 선택이 풀리므로 미리 저장해 둔다 */
+let savedRange=null;
+document.addEventListener('pointerdown',e=>{
+  if(ed.contains(e.target)) return;
+  const sl=window.getSelection();
+  if(sl&&sl.rangeCount){
+    const r=sl.getRangeAt(0);
+    if(ed.contains(r.commonAncestorContainer)) savedRange=r.cloneRange();
+  }
+},true);
+function activeRange(){
+  const sl=window.getSelection();
+  if(sl&&sl.rangeCount){
+    const r=sl.getRangeAt(0);
+    if(ed.contains(r.commonAncestorContainer)) return r;
+  }
+  if(savedRange&&ed.contains(savedRange.commonAncestorContainer)) return savedRange;
+  return null;
+}
+
 /* 되돌리기 */
 let undoStack=[],redoStack=[],pendingSnap=null,histTimer=null;
 function pushHist(html){
@@ -750,10 +806,8 @@ function ensureBlocks(){
   if(!ed.childNodes.length) ed.innerHTML='<div><br></div>';
 }
 function edBlocks(){
-  const sl=window.getSelection();
-  if(!sl.rangeCount) return [];
-  const r=sl.getRangeAt(0);
-  if(!ed.contains(r.commonAncestorContainer)) return [];
+  const r=activeRange();
+  if(!r) return [];
   const top=n=>{let x=n; while(x&&x.parentNode&&x.parentNode!==ed) x=x.parentNode; return x&&x.parentNode===ed?x:null;};
   const kids=[...ed.childNodes];
   let a=top(r.startContainer), b=top(r.endContainer);
@@ -790,18 +844,17 @@ function cutTail(block,node,off){
   block.parentNode.insertBefore(nb,block.nextSibling);
 }
 function markBlocks(cls){
+  const r=activeRange();
+  if(!r){ ed.focus(); return; }
   snap();
   ensureBlocks();
   const sl=window.getSelection();
-  if(!sl.rangeCount){ ed.focus(); return; }
-  const r=sl.getRangeAt(0);
-  if(!ed.contains(r.commonAncestorContainer)){ ed.focus(); return; }
 
   let first=topBlock(r.startContainer), last=topBlock(r.endContainer);
   if(!first||!last){ ed.focus(); return; }
 
   // 드래그한 부분만 잘라내기 (해제는 자르지 않음)
-  if(cls&&!sl.isCollapsed){
+  if(cls&&!r.collapsed){
     if(!isAtEnd(last,r.endContainer,r.endOffset)) cutTail(last,r.endContainer,r.endOffset);
     if(!isAtStart(first,r.startContainer,r.startOffset)) cutHead(first,r.startContainer,r.startOffset);
   }
@@ -814,14 +867,13 @@ function markBlocks(cls){
     b.classList.remove('mA','mB','mL','mR');
     if(cls) b.classList.add(cls);
   });
-  sl.removeAllRanges();
+  if(sl) sl.removeAllRanges();
+  savedRange=null;
   render(); ed.focus();
 }
 function wrapSel(cls){
-  const sl=window.getSelection();
-  if(!sl.rangeCount||sl.isCollapsed){ ed.focus(); return; }
-  const r=sl.getRangeAt(0);
-  if(!ed.contains(r.commonAncestorContainer)){ ed.focus(); return; }
+  const r=activeRange();
+  if(!r||r.collapsed){ ed.focus(); return; }
   snap();
 
   // 범위에 걸친 텍스트 조각만 각각 감싼다 (내용을 옮기지 않으므로 글자가 사라지지 않음)
@@ -860,7 +912,8 @@ function wrapSel(cls){
     });
     target.parentNode.replaceChild(frag,target);
   });
-  sl.removeAllRanges();
+  const sl2=window.getSelection(); if(sl2) sl2.removeAllRanges();
+  savedRange=null;
   render(); ed.focus();
 }
 function insertText(t){ snap(); ed.focus(); document.execCommand('insertText',false,t); render(); }
@@ -897,6 +950,7 @@ $('toolbar').addEventListener('click',e=>{
   }
   else if(act==='photo'){ $('photoFile').click(); }
 });
+
 document.querySelectorAll('[data-mark]').forEach(btn=>
   btn.addEventListener('click',()=>markBlocks(MARKCLS[btn.dataset.mark]||null)));
 $('photoFile').addEventListener('change',e=>{
@@ -984,16 +1038,18 @@ function paintHL(){
   layer.innerHTML='';
   const base=content.getBoundingClientRect();
   const z=zoom||1;
-  flow.querySelectorAll('.hl').forEach(el=>{
-    const col=el.classList.contains('hA')?S('haC'):S('hbC');
+  flow.querySelectorAll('.hl,[data-bgpaint]').forEach(el=>{
+    const cap=el.hasAttribute('data-bgpaint');
+    const col=cap?S('dColor'):(el.classList.contains('hA')?S('haC'):S('hbC'));
+    const padX=cap?7:2, padY=cap?1:0, rad=cap?999:2;
     el.style.background='transparent';
     const r=document.createRange(); r.selectNodeContents(el);
     [...r.getClientRects()].forEach(rc=>{
       if(!rc.width||!rc.height) return;
       const d=document.createElement('div');
-      d.style.cssText='position:absolute;border-radius:2px;background:'+col+
-        ';left:'+((rc.left-base.left)/z-2)+'px;top:'+((rc.top-base.top)/z)+'px'+
-        ';width:'+(rc.width/z+4)+'px;height:'+(rc.height/z)+'px';
+      d.style.cssText='position:absolute;border-radius:'+rad+'px;background:'+col+
+        ';left:'+((rc.left-base.left)/z-padX)+'px;top:'+((rc.top-base.top)/z-padY)+'px'+
+        ';width:'+(rc.width/z+padX*2)+'px;height:'+(rc.height/z+padY*2)+'px';
       layer.appendChild(d);
     });
   });
