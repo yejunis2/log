@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=Hahmlet:wght@200;300;400;500;600&family=IBM+Plex+Sans+KR:wght@200;300;400;500;600&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@200;300;400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
@@ -55,11 +56,19 @@ body.capturing .preview-only{display:none!important;}
 #flow .pbrk{border:0;border-top:2px dashed #f0b6cb;margin:26px 0;}
 #flow img.ph{max-width:100%;display:block;margin:14px auto;border-radius:6px;}
 .tb{font-weight:700}.ti{font-style:italic}.qb{font-weight:600}
-.hl{border-radius:2px;padding:0 2px;}
+.hl{border-radius:2px;}
 #flow .qbar{border-left:3px solid #6bb3ae;padding-left:16px;margin:0 0 var(--pgap,14px);}
 #flow .qbar p:last-child{margin-bottom:0;}
 .brk{opacity:.72;}
 #footBox{opacity:.75;}
+#flow .namedline{display:flex;align-items:flex-start;margin:0 0 var(--pgap,14px);}
+#flow .nm{flex:0 0 var(--nmw,72px);width:var(--nmw,72px);display:flex;align-items:flex-start;padding-right:10px;}
+#flow .nmbar{margin-left:auto;opacity:.5;}
+#flow .nmbody{flex:1 1 auto;min-width:0;}
+.editor .mN::before{content:attr(data-name);color:var(--nmc,#c0698a);margin-right:9px;font-size:.9em;}
+.editor.bar .mN::before{content:attr(data-name) " │";}
+.editor .sA{--nmc:var(--nmcA);}
+.editor .sB{--nmc:var(--nmcB);}
 #flow .nm{margin-right:8px;}
 .chat{border-radius:10px;}
 .msg{display:flex;flex-direction:column;}
@@ -112,6 +121,7 @@ textarea{resize:vertical;min-height:170px;line-height:1.65;font-size:15px;}
 .editor .mA,.editor .mB{border-left:3px solid #6bb3ae;padding-left:11px;}
 .editor .mB{border-left-color:#eaa94f;}
 .editor .mL{padding-left:11px;border-left:3px solid var(--line);}
+.editor .mL2{padding-left:11px;border-left:3px dashed var(--sky);}
 .editor .mR{padding-right:11px;border-right:3px solid var(--sky);text-align:right;}
 input[type=file]{font-size:12.5px;color:var(--sub);}
 input[type=color]{width:100%;height:38px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--field);}
@@ -216,6 +226,8 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <button data-wrap="q">따옴표 강조</button>
         <button data-mark="|a">강조 A</button>
         <button data-mark="|b">강조 B</button>
+        <button data-act="nameA">이름 A</button>
+        <button data-act="nameB">이름 B</button>
         <button class="blk" data-act="photo">사진</button>
         <button class="blk" data-block="---">구분선</button>
         <button class="blk" data-block="===">페이지 나눔</button>
@@ -229,6 +241,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
       <div class="seg" style="margin-top:10px">
         <button data-mark="&gt;">왼쪽 말풍선</button>
         <button data-mark="&lt;">오른쪽 말풍선</button>
+        <button data-mark="&gt;&gt;">추가 말풍선</button>
       </div>
       <div class="seg" style="margin-top:6px">
         <button data-mark="">줄 표시 해제</button>
@@ -273,7 +286,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
     <div class="in">
       <div class="f"><label for="font">글꼴</label>
         <select id="font">
-          <option value="'Pretendard Variable',Pretendard,sans-serif">프리텐다드</option>
+          <option value="Pretendard,sans-serif">프리텐다드</option>
           <option value="'IBM Plex Sans KR',sans-serif">IBM 플렉스 산스</option>
           <option value="'Gowun Dodum',sans-serif">고운돋움</option>
           <option value="'Nanum Myeongjo',serif">나눔명조</option>
@@ -345,6 +358,21 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <label class="chk"><input type="checkbox" id="smShadow"> 글자 그림자</label>
       </div>
       </div></details>
+      <details class="sub"><summary>이름표</summary>
+      <div class="subin">
+        <div class="two">
+          <div class="f"><label for="nmNameA">이름 A</label><input type="text" id="nmNameA" placeholder="A"></div>
+          <div class="f"><label for="nmColorA">A 색</label><input type="color" id="nmColorA" value="#c0698a"></div>
+        </div>
+        <div class="two">
+          <div class="f"><label for="nmNameB">이름 B</label><input type="text" id="nmNameB" placeholder="B"></div>
+          <div class="f"><label for="nmColorB">B 색</label><input type="color" id="nmColorB" value="#6b8fb5"></div>
+        </div>
+        <div class="f"><label>이름 칸 너비 <span class="v" id="nmWidthV">72px</span></label>
+          <input type="range" id="nmWidth" min="30" max="200" step="2" value="72"></div>
+        <label class="chk"><input type="checkbox" id="nmBar"> 이름 뒤에 세로선 넣기</label>
+        <p class="hint">여기에 두 사람을 적어두고, 본문 툴바의 이름 A·B 버튼으로 대사 줄에 답니다. 떼려면 ‘줄 표시 해제’를 누르세요.</p>
+      </div></details>
     </div>
   </details>
 
@@ -359,12 +387,24 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <div class="f"><label for="leftName">왼쪽 이름</label><input type="text" id="leftName" placeholder="비우면 숨김"></div>
         <div class="f"><label for="rightName">오른쪽 이름</label><input type="text" id="rightName" placeholder="비우면 숨김"></div>
       </div>
-      <div class="three">
-        <div class="sw"><input type="color" id="chatBg" value="#b2c7da"><span>대화창</span></div>
+      <div class="two">
+        <div class="f"><label for="extraName">추가 이름</label><input type="text" id="extraName" placeholder="비우면 숨김"></div>
+        <div class="f"><label for="extraSide">추가 방향</label>
+          <select id="extraSide"><option value="left">왼쪽</option><option value="right">오른쪽</option></select></div>
+      </div>
+      <div class="f"><label>대화창 배경</label>
+        <input type="color" id="chatBg" value="#b2c7da"></div>
+      <div class="two">
         <div class="sw"><input type="color" id="leftBg" value="#f2f3f5"><span>왼쪽 풍선</span></div>
-        <div class="sw"><input type="color" id="rightBg" value="#fdeaf1"><span>오른쪽 풍선</span></div>
         <div class="sw"><input type="color" id="leftFg" value="#1a1a1a"><span>왼쪽 글자</span></div>
+      </div>
+      <div class="two" style="margin-top:10px">
+        <div class="sw"><input type="color" id="rightBg" value="#fdeaf1"><span>오른쪽 풍선</span></div>
         <div class="sw"><input type="color" id="rightFg" value="#1a1a1a"><span>오른쪽 글자</span></div>
+      </div>
+      <div class="two" style="margin-top:10px">
+        <div class="sw"><input type="color" id="extraBg" value="#eef1f6"><span>추가 풍선</span></div>
+        <div class="sw"><input type="color" id="extraFg" value="#1a1a1a"><span>추가 글자</span></div>
       </div>
       <div class="two" style="margin-top:14px">
         <div class="f"><label>글자 크기 <span class="v" id="cSizeV">15px</span></label>
@@ -499,8 +539,8 @@ const S=id=>$(id).value;
 
 const TAGMAP={b:'tb',i:'ti',c:'c2',q:'qb',d:'dl',ha:'hl hA',hb:'hl hB'};
 const CLS2TAG={tb:'b',ti:'i',c2:'c',qb:'q',dl:'d',hA:'ha',hB:'hb'};
-const BLOCKMARK={mA:'|a ',mB:'|b ',mL:'> ',mR:'< '};
-const MARKCLS={'|a':'mA','|b':'mB','>':'mL','<':'mR'};
+const BLOCKMARK={mA:'|a ',mB:'|b ',mL:'> ',mL2:'>> ',mR:'< '};
+const MARKCLS={'|a':'mA','|b':'mB','>':'mL','>>':'mL2','<':'mR'};
 
 function serialize(root){
   function inner(node){
@@ -515,6 +555,7 @@ function serialize(root){
       if(/^(DIV|P|LI)$/.test(n.nodeName)){
         const mk=Object.keys(BLOCKMARK).find(c=>cls.includes(c));
         let pre=mk?BLOCKMARK[mk]:'';
+        if(cls.includes('mN')) pre='@'+(cls.includes('sB')?'B':'A')+':'+((n.dataset&&n.dataset.name)||'')+': ';
         if(ic==='\n') ic='';
         r+=(r?'\n':'')+pre+ic;
         return;
@@ -538,6 +579,11 @@ function inline(s){
   return s.replace(/\[사진(\d+)\]/g,(m,n)=>photos[+n-1]?`<img class="ph" src="${photos[+n-1]}">`:'');
 }
 
+function namedHTML(name,body,slot){
+  const n=esc(name);
+  const bar=$('nmBar').checked ? '<span class="nmbar nmS'+slot+'">\u2502</span>' : '';
+  return '<p class="namedline"><span class="nm nmS'+slot+'">'+n+bar+'</span><span class="nmbody">'+body+'</span></p>';
+}
 function parse(){
   const lines=TXT().replace(/\s+$/,'').split('\n'), pages=[];
   let buf='',para=[],chat=null,last=null,bar=[],barType=null,lastBlock=false;
@@ -558,15 +604,24 @@ function parse(){
       barType=ty; bar.push(inline(q[2])); return;
     }
 
-    const b=line.match(/^\s*([<>])\s(.*)$/);
-    if(b){
+    const nmm=line.match(/^\s*@([AB]):([^:\n]{0,24}):\s?(.*)$/);
+    if(nmm){
+      flushPara(); closeChat(); closeBar();
+      buf+=namedHTML(nmm[2],inline(nmm[3]),nmm[1]); lastBlock=true; return;
+    }
+
+    const b2=line.match(/^\s*>>\s(.*)$/);
+    const b=b2?null:line.match(/^\s*([<>])\s(.*)$/);
+    if(b2||b){
       flushPara(); closeBar();
-      const side=b[1]==='>'?'left':'right';
+      const who=b2?'extra':(b[1]==='>'?'left':'right');
+      const dir=who==='extra'?S('extraSide'):who;
+      const body=b2?b2[1]:b[2];
       if(chat===null) chat='';
-      const nm=(side==='left'?S('leftName'):S('rightName')).trim();
-      const nick=(side!==last&&nm)?`<div class="nick">${esc(nm)}</div>`:'';
-      chat+=`<div class="msg ${side}">${nick}<div class="bubble">${inline(b[2])||'&nbsp;'}</div></div>`;
-      last=side; return;
+      const nm=S(who==='extra'?'extraName':who==='left'?'leftName':'rightName').trim();
+      const nick=(who!==last&&nm)?`<div class="nick">${esc(nm)}</div>`:'';
+      chat+=`<div class="msg ${dir}${who==='extra'?' extra':''}">${nick}<div class="bubble">${inline(body)||'&nbsp;'}</div></div>`;
+      last=who; return;
     }
 
     closeChat(); closeBar();
@@ -622,6 +677,12 @@ function apply(){
   flow.querySelectorAll('img.ph').forEach(i=>i.style.width=V('phW')+'%');
 
   document.querySelectorAll('.c2').forEach(e=>e.style.color=S('c2'));
+  document.querySelectorAll('#flow .nmSA').forEach(e=>e.style.color=S('nmColorA'));
+  document.querySelectorAll('#flow .nmSB').forEach(e=>e.style.color=S('nmColorB'));
+  flow.style.setProperty('--nmw',V('nmWidth')+'px');
+  ed.classList.toggle('bar',$('nmBar').checked);
+  ed.style.setProperty('--nmcA',S('nmColorA'));
+  ed.style.setProperty('--nmcB',S('nmColorB'));
   const dst=S('dStyle'),dcol=S('dColor');
   document.querySelectorAll('.dl').forEach(e=>{
     e.removeAttribute('data-bgpaint');
@@ -649,9 +710,10 @@ function apply(){
   document.querySelectorAll('.msg').forEach(m=>m.style.marginBottom=V('cGap')+'px');
   document.querySelectorAll('.nick').forEach(n=>n.style.margin='0 0 '+V('cName')+'px 2px');
   document.querySelectorAll('.bubble').forEach(b=>{
-    const R=b.closest('.msg').classList.contains('right');
-    b.style.background=R?S('rightBg'):S('leftBg');
-    b.style.color=R?S('rightFg'):S('leftFg');
+    const m=b.closest('.msg');
+    const key=m.classList.contains('extra')?'extra':(m.classList.contains('right')?'right':'left');
+    b.style.background=S(key+'Bg');
+    b.style.color=S(key+'Fg');
     b.style.maxWidth=V('cW')+'%';
     b.style.padding=Math.round(V('cPad')*.7)+'px '+V('cPad')+'px';
   });
@@ -676,6 +738,7 @@ function apply(){
   } else bgLayer.style.background='transparent';
 
   const put=(id,txt)=>{const e=$(id);if(e)e.textContent=txt;};
+  put('nmWidthV',V('nmWidth')+'px');
   put('sizeV',V('size')+'px'); put('lsV',S('ls')+'px'); put('lhV',V('lh')+'px');
   put('pgapV',V('pgap')+'px'); put('jpV',V('jp')+'%'); put('phWV',V('phW')+'%');
   put('titleSizeV',V('titleSize')+'px'); put('subSizeV',V('subSize')+'px');
@@ -719,7 +782,7 @@ $('stage').addEventListener('touchmove',e=>{
 $('stage').addEventListener('touchend',()=>{pd=0;});
 
 /* 입력 */
-const RE=['text','title','subtitle','foot','leftName','rightName','smQuote','smBracket'];
+const RE=['text','title','subtitle','foot','leftName','rightName','extraName','extraSide','smQuote','smBracket','nmBar'];
 $('rail').addEventListener('input',e=>{
   if(e.target.id==='cfgBox'||e.target.id==='presetName') return;
   RE.includes(e.target.id)?render():apply();
@@ -737,9 +800,9 @@ seg('brSeg','br',v=>{brMode=v;apply();});
 seg('wSeg','w',v=>{weight=v;apply();});
 seg('chatSeg','style',v=>{
   chatStyle=v;
-  if(v==='kakao'){$('chatBg').value='#b2c7da';$('leftBg').value='#ffffff';$('leftFg').value='#1a1a1a';$('rightBg').value='#fee500';$('rightFg').value='#1a1a1a';}
-  if(v==='imsg'){$('chatBg').value='#ffffff';$('leftBg').value='#e9e9eb';$('leftFg').value='#111111';$('rightBg').value='#0a84ff';$('rightFg').value='#ffffff';}
-  if(v==='plain'){$('leftBg').value='#f2f3f5';$('leftFg').value='#1a1a1a';$('rightBg').value='#fdeaf1';$('rightFg').value='#1a1a1a';}
+  if(v==='kakao'){$('chatBg').value='#b2c7da';$('leftBg').value='#ffffff';$('leftFg').value='#1a1a1a';$('extraBg').value='#eaf0f6';$('extraFg').value='#1a1a1a';$('rightBg').value='#fee500';$('rightFg').value='#1a1a1a';}
+  if(v==='imsg'){$('chatBg').value='#ffffff';$('leftBg').value='#e9e9eb';$('leftFg').value='#111111';$('extraBg').value='#dfe3e8';$('extraFg').value='#111111';$('rightBg').value='#0a84ff';$('rightFg').value='#ffffff';}
+  if(v==='plain'){$('leftBg').value='#f2f3f5';$('leftFg').value='#1a1a1a';$('extraBg').value='#eef1f6';$('extraFg').value='#1a1a1a';$('rightBg').value='#fdeaf1';$('rightFg').value='#1a1a1a';}
   apply();
 });
 seg('bgSeg','mode',v=>{
@@ -843,7 +906,7 @@ function cutTail(block,node,off){
   if(!nb.textContent) nb.innerHTML='<br>';
   block.parentNode.insertBefore(nb,block.nextSibling);
 }
-function markBlocks(cls){
+function markBlocks(cls,name,slotCls){
   const r=activeRange();
   if(!r){ ed.focus(); return; }
   snap();
@@ -864,8 +927,11 @@ function markBlocks(cls){
   if(i<0){ ed.focus(); return; }
   if(j<0) j=i;
   kids.slice(i,j+1).forEach(b=>{
-    b.classList.remove('mA','mB','mL','mR');
+    b.classList.remove('mA','mB','mL','mR','mL2','mN','sA','sB');
+    if(b.dataset) delete b.dataset.name;
     if(cls) b.classList.add(cls);
+    if(slotCls) b.classList.add(slotCls);
+    if(name) b.dataset.name=name;
   });
   if(sl) sl.removeAllRanges();
   savedRange=null;
@@ -940,6 +1006,8 @@ $('toolbar').addEventListener('click',e=>{
   if(b.dataset.wrap) return wrapSel(TAGMAP[b.dataset.wrap]);
   if(b.dataset.block) return insertText('\n'+b.dataset.block+'\n');
   const act=b.dataset.act;
+  if(act==='nameA') return applyName('A');
+  if(act==='nameB') return applyName('B');
   if(act==='undo') return undo();
   if(act==='redo') return redo();
   if(act==='clear'){ if(confirm('본문을 모두 지울까요?')){ snap(); ed.innerHTML='<div><br></div>'; render(); } }
@@ -951,6 +1019,19 @@ $('toolbar').addEventListener('click',e=>{
   else if(act==='photo'){ $('photoFile').click(); }
 });
 
+function markName(name,slot){
+  markBlocks(name?'mN':null, name||null, name?('s'+slot):null);
+}
+function applyName(slot){
+  const f=$('nmName'+slot);
+  let nm=f.value.trim();
+  if(!nm){
+    const t=prompt('이름 '+slot+' 를 입력하세요','');
+    if(t===null||!t.trim()) return;
+    nm=t.trim(); f.value=nm;
+  }
+  markName(nm,slot);
+}
 document.querySelectorAll('[data-mark]').forEach(btn=>
   btn.addEventListener('click',()=>markBlocks(MARKCLS[btn.dataset.mark]||null)));
 $('photoFile').addEventListener('change',e=>{
@@ -1057,6 +1138,7 @@ function paintHL(){
 
 async function shoot(){
   await document.fonts.ready;
+  flow.normalize();
   paintHL();
   document.body.classList.add('capturing');
   const z=zoom; $('zoom').style.transform='scale(1)';
