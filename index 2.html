@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>로그 이미지 생성기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Jua&family=Noto+Sans+KR:wght@300;400;500;700&family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=Hahmlet:wght@200;300;400;500;600&family=IBM+Plex+Sans+KR:wght@200;300;400;500;600&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@200;300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{
+  --ink:#2b2329; --sub:#8b7a82; --sky:#e08fae; --deep:#cf7b9b;
+  --pale:#fbe9f0; --line:#eee2e7; --card:#fff; --field:#fdf7f9;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;margin:0;}
+body{font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif;
+  background:#fff;color:var(--ink);-webkit-text-size-adjust:100%;
+  display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:none;font-size:14px;}
+.side{display:contents;}
+#backdrop{display:none!important;}
+body.menu-open #backdrop{display:block;}
+.menu-btn{flex:0 0 auto!important;width:50px;}
+body.capturing .preview-only{display:none!important;}
+body.menu-open .rail{transform:none;}
+body.menu-open .stage{max-height:calc(100dvh - 52dvh - 74px);}
+
+/* ===== 미리보기 ===== */
+.stage{flex:1 1 auto;min-height:0;padding-bottom:78px;position:relative;overflow:auto;-webkit-overflow-scrolling:touch;
+  padding:16px;padding-top:calc(16px + env(safe-area-inset-top));background:#fff;
+  display:flex;flex-direction:column;}
+.stage-inner{flex:1 0 auto;display:flex;justify-content:center;align-items:flex-start;min-width:100%;width:max-content;}
+#zoom{transform-origin:top left;}
+.zoombar{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;gap:7px;
+  margin:14px auto 0;align-self:center;width:max-content;padding:5px 9px;
+  background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:99px;backdrop-filter:blur(6px);}
+.zoombar button{width:30px;height:30px;border:0;border-radius:50%;background:var(--pale);color:var(--deep);font-size:15px;cursor:pointer;}
+.zoombar #zFit{width:auto;padding:0 11px;font-size:12px;font-weight:600;}
+.zoombar input[type=range]{width:100px;height:24px;}
+.zoombar .pct{font-size:11.5px;width:40px;text-align:center;color:var(--sub);font-variant-numeric:tabular-nums;}
+.warn{position:absolute;left:16px;top:calc(16px + env(safe-area-inset-top));z-index:4;display:none;
+  font-size:11px;color:#b45309;background:#fff7ed;padding:4px 9px;border-radius:99px;}
+
+/* ===== 저장 영역 ===== */
+#page{--jp:1;position:relative;width:600px;overflow:hidden;background:#fff;
+  box-shadow:0 4px 20px rgba(28,39,51,.13),0 0 0 1px rgba(28,39,51,.06);}
+#bgLayer,#overlay{position:absolute;inset:0;}
+#bgLayer{background-size:cover;background-position:center;}
+#sideImg{position:absolute;top:0;bottom:0;display:none;background-position:center;background-repeat:no-repeat;}
+#content{position:relative;height:100%;display:flex;flex-direction:column;padding:70px 50px;}
+#jpWrap{width:calc(100% / var(--jp));transform:scaleX(var(--jp));transform-origin:left top;position:relative;z-index:1;}
+#hlLayer{position:absolute;inset:0;z-index:0;pointer-events:none;}
+#flow.cols2{column-count:2;column-gap:44px;}
+#flow{word-break:keep-all;overflow-wrap:break-word;white-space:pre-wrap;}
+#flow p{margin:0 0 var(--pgap,14px);}
+#flow .h1{font-weight:700;margin:0 0 10px;}
+#flow .h2{opacity:.66;margin:0 0 14px;}
+#flow .rule{border:0;border-top:1px solid currentColor;opacity:.22;margin:22px 0;}
+#flow .pbrk{border:0;border-top:2px dashed #f0b6cb;margin:26px 0;}
+#flow img.ph{max-width:100%;display:block;margin:14px auto;border-radius:6px;}
+.tb{font-weight:700}.ti{font-style:italic}.qb{font-weight:600}
+.hl{border-radius:2px;}
+#flow .qbar{border-left:3px solid #6bb3ae;padding-left:16px;margin:0 0 var(--pgap,14px);}
+#flow .qbar p:last-child{margin-bottom:0;}
+.brk{}
+#footBox{opacity:.75;}
+#footBox .fsep{margin:0 7px;opacity:.5;}
+#flow .namedline{display:flex;align-items:flex-start;margin:0 0 var(--pgap,14px);}
+#flow .nm{flex:0 0 var(--nmw,72px);width:var(--nmw,72px);display:flex;align-items:flex-start;padding-right:10px;}
+#flow .nmbar{margin-left:auto;opacity:.5;}
+#flow .nmbody{flex:1 1 auto;min-width:0;}
+.editor .mN::before{content:attr(data-name);color:var(--nmc,#c0698a);margin-right:9px;font-size:.9em;}
+.editor.bar .mN::before{content:attr(data-name) " │";}
+.editor .sA{--nmc:var(--nmcA);}
+.editor .sB{--nmc:var(--nmcB);}
+#flow .nm{margin-right:8px;}
+.chat{border-radius:10px;}
+#flow .chatdate{text-align:center;font-size:.82em;opacity:.55;margin:0 0 12px;}
+#flow .chatbar{margin:14px 0 0;padding:9px 15px;border-radius:999px;
+  background:rgba(255,255,255,.78);font-size:.88em;opacity:.6;}
+.msg{display:flex;flex-direction:column;}
+.msg.right{align-items:flex-end;}
+.msg.left{align-items:flex-start;}
+.nick{opacity:.72;font-size:.82em;}
+.bubble{display:inline-block;border-radius:16px;word-break:keep-all;overflow-wrap:break-word;white-space:pre-wrap;}
+.msg.left .bubble{border-top-left-radius:5px;}
+.msg.right .bubble{border-top-right-radius:5px;}
+
+/* ===== 컨트롤 ===== */
+.rail{position:fixed;left:0;right:0;bottom:62px;height:52dvh;z-index:50;
+  transform:translateY(calc(100% + 64px));transition:transform .25s ease;
+  box-shadow:0 -10px 26px rgba(28,39,51,.13);border-top:1px solid var(--line);
+  border-radius:16px 16px 0 0;padding-bottom:16px;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--card);border-top:1px solid var(--line);padding-bottom:10px;}
+.group{border-bottom:1px solid var(--line);}
+.group>summary{list-style:none;cursor:pointer;padding:15px 18px;display:flex;align-items:center;gap:9px;
+  font-size:14px;font-weight:700;letter-spacing:.01em;color:#e08fae;}
+.group>summary::before{content:'';width:13px;height:12px;flex:0 0 auto;background-repeat:no-repeat;background-size:13px 12px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='12' viewBox='0 0 13 12' fill='%23e8a8c2' shape-rendering='crispEdges'%3E%3Crect x='2' y='1' width='4' height='1'/%3E%3Crect x='7' y='1' width='4' height='1'/%3E%3Crect x='1' y='2' width='1' height='3'/%3E%3Crect x='11' y='2' width='1' height='3'/%3E%3Crect x='6' y='2' width='1' height='1'/%3E%3Crect x='2' y='5' width='1' height='2'/%3E%3Crect x='10' y='5' width='1' height='2'/%3E%3Crect x='3' y='7' width='1' height='1'/%3E%3Crect x='9' y='7' width='1' height='1'/%3E%3Crect x='4' y='8' width='1' height='1'/%3E%3Crect x='8' y='8' width='1' height='1'/%3E%3Crect x='5' y='9' width='1' height='1'/%3E%3Crect x='7' y='9' width='1' height='1'/%3E%3Crect x='6' y='10' width='1' height='1'/%3E%3C/svg%3E");}
+.group[open]>summary::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='12' viewBox='0 0 13 12' fill='%23e08fae' shape-rendering='crispEdges'%3E%3Crect x='2' y='1' width='4' height='1'/%3E%3Crect x='7' y='1' width='4' height='1'/%3E%3Crect x='1' y='2' width='11' height='3'/%3E%3Crect x='2' y='5' width='9' height='2'/%3E%3Crect x='3' y='7' width='7' height='1'/%3E%3Crect x='4' y='8' width='5' height='1'/%3E%3Crect x='5' y='9' width='3' height='1'/%3E%3Crect x='6' y='10' width='1' height='1'/%3E%3C/svg%3E");}
+.group>summary::-webkit-details-marker{display:none;}
+.group>summary::after{content:'▾';margin-left:auto;font-size:12px;letter-spacing:0;color:#eeaec6;}
+.group[open]>summary::after{content:'▴';}
+.group>summary:hover{background:#fdf5f8;}
+.group .in{padding:0 18px 18px;}
+.sub{display:block;border-top:1px solid var(--line);margin-top:16px;}
+.sub>summary{list-style:none;cursor:pointer;padding:13px 0 11px;display:flex;align-items:center;
+  font-size:13.5px;font-weight:700;color:var(--ink);}
+.sub>summary::-webkit-details-marker{display:none;}
+.sub>summary::after{content:'▾';margin-left:auto;color:var(--sub);font-size:11px;}
+.sub[open]>summary::after{content:'▴';}
+.subin{padding-bottom:6px;}
+.f{margin-bottom:11px;}
+.f:last-child{margin-bottom:0;}
+.f>label{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--sub);margin-bottom:4px;}
+.f .v{font-variant-numeric:tabular-nums;font-weight:700;color:var(--deep);}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}
+
+input[type=text],select,textarea{width:100%;padding:6px 10px;line-height:1.2;font:inherit;font-size:16px;color:var(--ink);
+  background:var(--field);border:1px solid var(--line);border-radius:11px;outline:none;appearance:none;-webkit-appearance:none;}
+select{background-image:linear-gradient(45deg,transparent 50%,var(--sub) 50%),linear-gradient(135deg,var(--sub) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px,5px;background-repeat:no-repeat;padding-right:34px;}
+input:focus,select:focus,textarea:focus{border-color:var(--sky);box-shadow:0 0 0 3px var(--pale);}
+textarea{resize:vertical;min-height:170px;line-height:1.65;font-size:15px;}
+.edwrap{position:relative;}
+.editor{width:100%;min-height:180px;max-height:46vh;overflow-y:auto;padding:11px 12px;
+  font-size:15px;line-height:1.7;color:var(--ink);background:var(--field);
+  border:1px solid var(--line);border-radius:11px;outline:none;
+  white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word;}
+.editor:focus{border-color:var(--sky);box-shadow:0 0 0 3px var(--pale);}
+.edph{position:absolute;top:12px;left:14px;color:var(--sub);font-size:15px;pointer-events:none;}
+.editor .mA,.editor .mB{border-left:3px solid #6bb3ae;padding-left:11px;}
+.editor .mB{border-left-color:#eaa94f;}
+.editor.picking{cursor:pointer;}
+.editor .picked{background:var(--pale);border-radius:6px;width:fit-content;max-width:100%;padding:0 3px;}
+.editor .mL{padding-left:11px;border-left:3px solid var(--line);}
+.editor .mL2{padding-left:11px;border-left:3px dashed var(--sky);}
+.editor .mR{padding-right:11px;border-right:3px solid var(--sky);text-align:right;}
+input[type=file]{font-size:12.5px;color:var(--sub);}
+input[type=color]{width:100%;height:28px;padding:2px;border:1px solid var(--line);border-radius:10px;background:var(--field);}
+.sw{display:flex;flex-direction:column;gap:5px;}
+.sw span{font-size:11.5px;color:var(--sub);text-align:center;}
+
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:26px;background:none;}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:0;
+  background:linear-gradient(to right,#f0b6cb 0 var(--p,50%),var(--pale) var(--p,50%) 100%);}
+input[type=range]::-moz-range-track{height:6px;border-radius:0;
+  background:linear-gradient(to right,#f0b6cb 0 var(--p,50%),var(--pale) var(--p,50%) 100%);}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:18px;margin-top:-6px;
+  background:var(--sky);border:0;border-radius:0;box-shadow:0 1px 3px rgba(28,39,51,.22);cursor:pointer;}
+input[type=range]::-moz-range-thumb{width:12px;height:18px;background:var(--sky);border:0;border-radius:0;}
+
+.fontpick{position:relative;}
+#fontBtn{width:100%;padding:6px 10px;line-height:1.2;text-align:left;font:inherit;font-size:16px;color:var(--ink);
+  background:var(--field);border:1px solid var(--line);border-radius:11px;cursor:pointer;}
+.fontlist{display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:60;
+  background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;
+  box-shadow:0 10px 26px rgba(28,39,51,.16);max-height:230px;overflow-y:auto;}
+.fontlist.on{display:block;}
+.fontlist button{display:block;width:100%;text-align:left;padding:8px 11px;font-size:15px;line-height:1.35;
+  background:none;border:0;border-radius:7px;color:var(--ink);cursor:pointer;}
+.fontlist button[aria-selected=true]{background:var(--pale);color:var(--deep);font-weight:700;}
+.datebox{display:flex;align-items:center;gap:7px;}
+.datebox input{flex:1 1 0;min-width:0;text-align:center;padding:6px 4px;line-height:1.2;font:inherit;font-size:16px;
+  color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:11px;outline:none;
+  -moz-appearance:textfield;appearance:textfield;}
+.datebox input::-webkit-outer-spin-button,.datebox input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.datebox input:focus{border-color:var(--sky);box-shadow:0 0 0 3px var(--pale);}
+.datebox span{flex:0 0 auto;font-size:13px;color:var(--sub);}
+.seg{display:flex;gap:3px;background:var(--field);padding:4px;border-radius:12px;}
+.seg.wrap{flex-wrap:wrap;}
+.seg button{flex:1;min-width:0;padding:8px 3px;font:inherit;font-size:12.5px;color:var(--sub);
+  background:none;border:0;border-radius:9px;cursor:pointer;white-space:nowrap;}
+.seg button[aria-pressed=true]{background:var(--card);color:var(--deep);font-weight:700;box-shadow:0 1px 2px rgba(28,39,51,.12);}
+.chk{display:flex;align-items:center;gap:9px;font-size:13.5px;padding:5px 0;color:var(--ink);}
+.chk input{width:19px;height:19px;accent-color:var(--sky);}
+.hint{font-size:12px;color:var(--sub);line-height:1.55;margin:9px 0 0;}
+code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;font-size:11.5px;}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+.toolbar button{padding:8px 11px;font:inherit;font-size:12.5px;font-weight:600;
+  background:var(--field);color:var(--ink);border:1px solid var(--line);border-radius:9px;cursor:pointer;}
+.toolbar button.blk{color:var(--deep);background:var(--pale);border-color:#f4d7e2;}
+.toolbar button.clr{color:#b06070;background:#fdeef1;border-color:#f4dbe1;}
+.inline-row{display:flex;gap:8px;}
+.inline-row .btn{flex:0 0 auto;padding:0 16px;font:inherit;font-size:13.5px;font-weight:700;
+  background:var(--sky);color:#fff;border:0;border-radius:11px;cursor:pointer;}
+.chips{display:flex;flex-wrap:wrap;gap:7px;}
+.chip{display:flex;align-items:center;gap:2px;background:var(--field);border:1px solid var(--line);border-radius:99px;overflow:hidden;}
+.chip .load{padding:8px 5px 8px 13px;font:inherit;font-size:13px;font-weight:600;color:var(--deep);background:none;border:0;cursor:pointer;}
+.chip .del{padding:8px 11px 8px 4px;font:inherit;font-size:13px;color:var(--sub);background:none;border:0;cursor:pointer;}
+.empty{font-size:12.5px;color:var(--sub);}
+
+.save{position:fixed;left:0;right:0;bottom:0;z-index:51;display:flex;gap:8px;padding:11px 14px;padding-bottom:calc(11px + env(safe-area-inset-bottom));
+  background:var(--card);border-top:1px solid var(--line);}
+.save button{flex:1;padding:11px 4px;font:inherit;font-size:12.5px;font-weight:700;border-radius:12px;cursor:pointer;
+  background:var(--card);color:var(--deep);border:1px solid var(--line);line-height:1.25;}
+.save button.primary{background:var(--sky);color:#fff;border-color:var(--sky);}
+.save button:disabled{opacity:.55;}
+
+.modal{position:fixed;inset:0;z-index:99;display:none;background:rgba(20,30,40,.85);padding:18px;
+  flex-direction:column;align-items:center;justify-content:center;gap:12px;}
+.modal.on{display:flex;}
+.modal .box{background:var(--card);border-radius:16px;padding:20px;max-width:520px;width:100%;max-height:76dvh;overflow:auto;}
+.modal .box h4{margin:0 0 12px;font-family:'Gowun Batang',serif;font-size:17px;}
+.modal .box p{font-size:13.5px;line-height:1.75;margin:0 0 8px;color:var(--sub);}
+.modal .shots{display:flex;flex-direction:column;gap:10px;align-items:center;width:100%;max-height:70dvh;overflow:auto;}
+.modal .shots img{max-width:100%;border-radius:8px;background:#fff;}
+.modal>button{padding:12px 24px;font:inherit;font-size:15px;font-weight:700;background:#fff;color:var(--ink);border:0;border-radius:11px;cursor:pointer;}
+
+@media (min-width:960px){
+  body{flex-direction:row;}
+  .stage{flex:1 1 auto;height:100dvh;}
+  .side{width:440px;flex:0 0 440px;display:flex;flex-direction:column;height:100dvh;border-left:1px solid var(--line);background:var(--card);}
+  .rail{position:static;transform:none;height:auto;flex:1 1 auto;border-top:0;box-shadow:none;border-radius:0;padding-bottom:10px;}
+  body.menu-open .stage{max-height:none;}
+  .save button{font-size:14px;padding:13px 5px;}
+  .save{position:static;}
+  .stage{padding-bottom:16px;}
+  .menu-btn{display:none;}
+  #backdrop{display:none!important;}
+  .editor{min-height:340px;max-height:52vh;}
+}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <span class="warn preview-only" id="warn">내용이 캔버스 밖으로 넘쳤어요</span>
+  <div class="stage-inner"><div id="zoom">
+    <div id="page">
+      <div id="bgLayer"></div><div id="overlay"></div><div id="sideImg"></div>
+      <div id="content"><div id="hlLayer"></div><div id="jpWrap">
+        <div id="titleBox"></div><div id="flow"></div><div id="footBox"></div>
+      </div></div>
+    </div>
+  </div></div>
+  <div class="zoombar preview-only">
+    <button id="zOut">−</button>
+    <input type="range" id="zoomR" min="15" max="200" step="5" value="100">
+    <button id="zIn">＋</button>
+    <span class="pct" id="zPct">100%</span>
+    <button id="zFit">맞춤</button>
+  </div>
+</div>
+
+<div id="backdrop"></div>
+<div class="side">
+<div class="rail" id="rail">
+
+  <details class="group" open>
+    <summary>콘텐츠</summary>
+    <div class="in">
+      <div class="toolbar" id="toolbar">
+        <button data-act="undo" title="되돌리기">↺ 되돌리기</button>
+        <button data-act="redo" title="다시 실행">↻ 다시</button>
+        <button data-wrap="b"><b>굵게</b></button>
+        <button data-wrap="i"><i>기울임</i></button>
+        <button data-act="quote">“ ”</button>
+        <button data-wrap="c">보조색</button>
+        <button data-wrap="ha">형광 A</button>
+        <button data-wrap="hb">형광 B</button>
+        <button data-wrap="q">따옴표 강조</button>
+        <button data-mark="|a">강조 A</button>
+        <button data-mark="|b">강조 B</button>
+        <button data-act="nameA">이름 A</button>
+        <button data-act="nameB">이름 B</button>
+        <button class="blk" data-act="photo">사진</button>
+        <button class="blk" data-block="---">구분선</button>
+        <button class="blk" data-block="===">페이지 나눔</button>
+        <button class="clr" data-act="clear">비우기</button>
+      </div>
+      <div class="edwrap">
+        <div id="text" class="editor" contenteditable="true" spellcheck="false"
+             autocorrect="off" autocapitalize="off"></div>
+        <span class="edph" id="edPh">로그를 붙여넣으세요</span>
+      </div>
+      <div class="seg" style="margin-top:10px">
+        <button data-mark="&gt;">왼쪽 말풍선</button>
+        <button data-mark="&lt;">오른쪽 말풍선</button>
+        <button data-mark="&gt;&gt;">추가 말풍선</button>
+      </div>
+      <div class="seg" style="margin-top:6px">
+        <button id="pickBtn">문장 선택</button>
+        <button data-mark="">선택한 문장 해제</button>
+      </div>
+      <p class="hint">‘문장 선택’을 켜고 원하는 문장 선택 후 ‘강조, 이름, 말풍선’ 을 누르면 한 번에 적용됩니다.</p>
+      <input type="file" id="photoFile" accept="image/*" style="display:none">
+      <p class="hint"><code>===</code> 는 페이지가 나뉘는 자리예요. 분할 저장을 누르면 그 지점마다 한 장씩 만들어집니다.</p>
+      <details class="sub"><summary>제목 · 하단</summary>
+      <div class="subin">      <div class="f"><label for="title">제목</label><input type="text" id="title" placeholder="비워도 됨"></div>
+      <div class="f"><label for="subtitle">소제목</label><input type="text" id="subtitle" placeholder="비워도 됨"></div>
+      <div class="two">
+        <div class="f"><label for="titleAlign">제목 정렬</label>
+          <select id="titleAlign"><option value="left">왼쪽</option><option value="center">가운데</option><option value="right">오른쪽</option></select></div>
+        <div class="f"><label>제목 크기 <span class="v" id="titleSizeV">24px</span></label>
+          <input type="range" id="titleSize" min="10" max="72" step="1" value="24"></div>
+      </div>
+      <div class="two">
+        <div class="f"><label>소제목 크기 <span class="v" id="subSizeV">15px</span></label>
+          <input type="range" id="subSize" min="8" max="48" step="1" value="15"></div>
+        <div class="f"><label>제목 ↔ 본문 <span class="v" id="titleGapV">28px</span></label>
+          <input type="range" id="titleGap" min="0" max="140" step="2" value="28"></div>
+      </div>
+      <div class="two">
+        <div class="sw"><input type="color" id="titleColor" value="#3b3b3b"><span>제목 색</span></div>
+        <div class="sw"><input type="color" id="subColor" value="#3b3b3b"><span>소제목 색</span></div>
+      </div>
+      <div class="two">
+        <div class="f"><label for="foot">하단</label><input type="text" id="foot" placeholder="비워도 됨"></div>
+        <div class="f"><label for="footAuthor">작가명</label><input type="text" id="footAuthor" placeholder="비워도 됨"></div>
+      </div>
+      <div class="three">
+        <div class="f"><label for="footSep">구분</label>
+          <select id="footSep"><option value="·">·</option><option value="|">|</option><option value="—">—</option><option value="/">/</option></select></div>
+        <div class="f"><label for="footAlign">하단 배치</label>
+          <select id="footAlign"><option value="left">왼쪽</option><option value="center">가운데</option><option value="right">오른쪽</option></select></div>
+        <div class="f"><label>하단 크기 <span class="v" id="footSizeV">14px</span></label>
+          <input type="range" id="footSize" min="8" max="40" step="1" value="14"></div>
+      </div>
+      <div class="f"><label>하단 ↔ 본문 <span class="v" id="footGapV">35px</span></label>
+        <input type="range" id="footGap" min="0" max="160" step="1" value="35"></div>
+      <div class="sw"><input type="color" id="footColor" value="#3b3b3b"><span>하단 색</span></div>
+      </div></details>
+    </div>
+  </details>
+
+  <details class="group">
+    <summary>글자</summary>
+    <div class="in">
+      <div class="f"><label>글꼴</label>
+        <div class="fontpick">
+          <button type="button" id="fontBtn">프리텐다드</button>
+          <div class="fontlist" id="fontList"></div>
+        </div>
+        <select id="font" style="display:none">
+          <option value="Pretendard,sans-serif">프리텐다드</option>
+          <option value="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif">애플 기본 (아이폰·맥)</option>
+          <option value="'IBM Plex Sans KR',sans-serif">IBM 플렉스 산스</option>
+          <option value="'Noto Sans KR',sans-serif">본고딕</option>
+          <option value="'Gowun Dodum',sans-serif">고운돋움</option>
+          <option value="'Nanum Myeongjo',serif">나눔명조</option>
+          <option value="'Noto Serif KR',serif">본명조</option>
+          <option value="'Gowun Batang',serif">고운바탕</option>
+          <option value="'Hahmlet',serif">함렛</option>
+          <option value="'Nanum Pen Script',cursive">나눔손글씨 펜</option>
+          <option value="'Do Hyeon',sans-serif">도현</option>
+          <option value="Jua,sans-serif">주아</option>
+          <option value="__custom__">내가 올린 글꼴</option>
+        </select></div>
+      <div class="f"><label for="fontFile">글꼴 파일 추가 (.ttf · .otf · .woff2)</label>
+        <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2"></div>
+      <div class="f"><label>굵기</label>
+        <div class="seg" id="wSeg">
+          <button data-w="200">얇게</button><button data-w="300" aria-pressed="true">약간 얇게</button>
+          <button data-w="400">보통</button><button data-w="500">약간 굵게</button><button data-w="700">굵게</button>
+        </div></div>
+      <details class="sub"><summary>조판</summary>
+      <div class="subin">      <div class="two">
+        <div class="f"><label>정렬</label>
+          <div class="seg" id="alignSeg">
+            <button data-align="left" aria-pressed="true">왼쪽</button><button data-align="center">가운데</button>
+            <button data-align="right">오른쪽</button><button data-align="justify">양쪽</button>
+          </div></div>
+        <div class="f"><label>줄바꿈</label>
+          <div class="seg" id="brSeg"><button data-br="keep-all" aria-pressed="true">단어 단위</button><button data-br="break-all">글자 단위</button></div></div>
+      </div>
+      <div class="two">
+        <div class="f"><label>글자 크기 <span class="v" id="sizeV">16px</span></label>
+          <input type="range" id="size" min="9" max="60" step="1" value="16"></div>
+        <div class="f"><label>자간 <span class="v" id="lsV">-0.5px</span></label>
+          <input type="range" id="ls" min="-5" max="10" step="0.1" value="-0.5"></div>
+        <div class="f"><label>행간 <span class="v" id="lhV">22px</span></label>
+          <input type="range" id="lh" min="8" max="90" step="1" value="22"></div>
+        <div class="f"><label>문단 간격 <span class="v" id="pgapV">14px</span></label>
+          <input type="range" id="pgap" min="0" max="80" step="1" value="14"></div>
+        <div class="f"><label>장평 <span class="v" id="jpV">100%</span></label>
+          <input type="range" id="jp" min="60" max="140" step="1" value="100"></div>
+        <div class="f"><label>사진 너비 <span class="v" id="phWV">100%</span></label>
+          <input type="range" id="phW" min="20" max="100" step="5" value="100"></div>
+      </div>
+      </div></details>
+      <details class="sub"><summary>색과 강조</summary>
+      <div class="subin">      <div class="two">
+        <div class="sw"><input type="color" id="color" value="#3b3b3b"><span>글자색</span></div>
+        <div class="sw"><input type="color" id="c2" value="#5b62c0"><span>보조색</span></div>
+        <div class="sw"><input type="color" id="uaC" value="#6bb3ae"><span>강조 A</span></div>
+        <div class="sw"><input type="color" id="ubC" value="#eaa94f"><span>강조 B</span></div>
+      </div>
+      <div class="two" style="margin-top:12px">
+        <div class="sw"><input type="color" id="haC" value="#fbe9f2"><span>형광 A</span></div>
+        <div class="sw"><input type="color" id="hbC" value="#fdf6cf"><span>형광 B</span></div>
+      </div>
+      <div class="two" style="margin-top:14px">
+      </div>
+      <div style="margin-top:8px">
+        <label class="chk"><input type="checkbox" id="smBracket"> 괄호 자동 감지 — ( ) 기호를 빼고 작게</label>
+        <div class="f"><label>괄호 글자 크기 <span class="v" id="brkSizeV">88%</span></label>
+          <input type="range" id="brkSize" min="55" max="100" step="1" value="88"></div>
+        <label class="chk"><input type="checkbox" id="smShadow"> 글자 그림자</label>
+      </div>
+      </div></details>
+      <details class="sub"><summary>이름표</summary>
+      <div class="subin">
+        <div class="two">
+          <div class="f"><label for="nmNameA">이름 A</label><input type="text" id="nmNameA" placeholder="A"></div>
+          <div class="f"><label for="nmColorA">A 색</label><input type="color" id="nmColorA" value="#c0698a"></div>
+        </div>
+        <div class="two">
+          <div class="f"><label for="nmNameB">이름 B</label><input type="text" id="nmNameB" placeholder="B"></div>
+          <div class="f"><label for="nmColorB">B 색</label><input type="color" id="nmColorB" value="#6b8fb5"></div>
+        </div>
+        <div class="f"><label>이름 칸 너비 <span class="v" id="nmWidthV">72px</span></label>
+          <input type="range" id="nmWidth" min="30" max="200" step="2" value="72"></div>
+        <label class="chk"><input type="checkbox" id="nmBar"> 이름 뒤에 세로선 넣기</label>
+        <p class="hint">여기에 두 사람을 적어두고, 본문 툴바의 이름 A·B 버튼으로 대사 줄에 답니다. 위 체크를 켜면 이름 뒤에 세로선이 붙고, 끄면 없어집니다.</p>
+      </div></details>
+    </div>
+  </details>
+
+  <details class="group">
+    <summary>말풍선</summary>
+    <div class="in">
+      <div class="f"><label>스타일</label><div class="seg" id="chatSeg">
+        <button data-style="plain" aria-pressed="true">심플</button>
+        <button data-style="kakao">카카오톡</button><button data-style="imsg">아이메시지</button>
+      </div>
+      <p class="hint">누르면 대화창·풍선·글자 색이 그 스타일로 한 번에 바뀝니다. 그다음 아래에서 하나씩 손봐도 돼요.</p></div>
+
+      <details class="sub"><summary>이름</summary>
+      <div class="subin">
+        <div class="two">
+          <div class="f"><label for="leftName">왼쪽 이름</label><input type="text" id="leftName" placeholder="비우면 숨김"></div>
+          <div class="f"><label for="rightName">오른쪽 이름</label><input type="text" id="rightName" placeholder="비우면 숨김"></div>
+        </div>
+        <div class="two">
+          <div class="f"><label for="extraName">추가 이름</label><input type="text" id="extraName" placeholder="비우면 숨김"></div>
+          <div class="f"><label for="extraSide">추가 방향</label>
+            <select id="extraSide"><option value="left">왼쪽</option><option value="right">오른쪽</option></select></div>
+        </div>
+      </div></details>
+
+      <details class="sub"><summary>색</summary>
+      <div class="subin">
+        <div class="f"><label>대화창 배경</label>
+          <input type="color" id="chatBg" value="#b2c7da"></div>
+        <div class="two">
+          <div class="sw"><input type="color" id="leftBg" value="#f2f3f5"><span>왼쪽 풍선</span></div>
+          <div class="sw"><input type="color" id="leftFg" value="#1a1a1a"><span>왼쪽 글자</span></div>
+        </div>
+        <div class="two" style="margin-top:8px">
+          <div class="sw"><input type="color" id="rightBg" value="#fdeaf1"><span>오른쪽 풍선</span></div>
+          <div class="sw"><input type="color" id="rightFg" value="#1a1a1a"><span>오른쪽 글자</span></div>
+        </div>
+        <div class="two" style="margin-top:8px">
+          <div class="sw"><input type="color" id="extraBg" value="#eef1f6"><span>추가 풍선</span></div>
+          <div class="sw"><input type="color" id="extraFg" value="#1a1a1a"><span>추가 글자</span></div>
+        </div>
+      </div></details>
+
+      <details class="sub"><summary>간격</summary>
+      <div class="subin">
+        <div class="two">
+          <div class="f"><label>글자 크기 <span class="v" id="cSizeV">15px</span></label>
+            <input type="range" id="cSize" min="8" max="40" step="1" value="15"></div>
+          <div class="f"><label>행간 <span class="v" id="cLhV">20px</span></label>
+            <input type="range" id="cLh" min="10" max="60" step="1" value="20"></div>
+          <div class="f"><label>내부 여백 <span class="v" id="cPadV">12px</span></label>
+            <input type="range" id="cPad" min="2" max="34" step="1" value="12"></div>
+          <div class="f"><label>풍선 간격 <span class="v" id="cGapV">12px</span></label>
+            <input type="range" id="cGap" min="0" max="40" step="1" value="12"></div>
+          <div class="f"><label>이름 간격 <span class="v" id="cNameV">4px</span></label>
+            <input type="range" id="cName" min="0" max="24" step="1" value="4"></div>
+          <div class="f"><label>풍선 너비 <span class="v" id="cWV">75%</span></label>
+            <input type="range" id="cW" min="40" max="100" step="1" value="75"></div>
+        </div>
+      </div></details>
+
+      <details class="sub"><summary>날짜</summary>
+      <div class="subin">
+        <label class="chk"><input type="checkbox" id="chatDate"> 위에 날짜 넣기</label>
+        <div class="f"><div class="datebox">
+          <input type="number" id="chatY" placeholder=""><span>년</span>
+          <input type="number" id="chatM" placeholder=""><span>월</span>
+          <input type="number" id="chatD" placeholder=""><span>일</span>
+        </div></div>
+      </div></details>
+    </div>
+  </details>
+
+  <details class="group">
+    <summary>캔버스</summary>
+    <div class="in">
+      <div class="f"><label>비율</label>
+        <div class="seg wrap" id="ratioSeg">
+          <button data-ratio="auto" aria-pressed="true">자동</button><button data-ratio="1:1">1:1</button>
+          <button data-ratio="4:5">4:5</button><button data-ratio="16:9">16:9</button><button data-ratio="9:16">9:16</button>
+        </div></div>
+      <div class="f"><label>너비 <span class="v" id="widthV">600px</span></label>
+        <input type="range" id="width" min="320" max="1600" step="10" value="600"></div>
+      <div class="f"><label>단 나누기</label>
+        <div class="seg" id="colSeg"><button data-col="1" aria-pressed="true">한 단</button><button data-col="2">두 단 (책 내지)</button></div></div>
+      <div class="two">
+        <div class="f"><label>좌우 여백 <span class="v" id="phV">50px</span></label>
+          <input type="range" id="ph" min="0" max="260" step="2" value="50"></div>
+        <div class="f"><label>위아래 여백 <span class="v" id="pvV">70px</span></label>
+          <input type="range" id="pv" min="0" max="260" step="2" value="70"></div>
+      </div>
+      <div class="f" id="vAlignF" style="display:none"><label for="vAlign">세로 위치</label>
+        <select id="vAlign"><option value="flex-start">위</option><option value="center" selected>가운데</option><option value="flex-end">아래</option></select></div>
+      <details class="sub"><summary>배경</summary>
+      <div class="subin">      <div class="f"><div class="seg wrap" id="bgSeg">
+        <button data-mode="solid" aria-pressed="true">단색</button><button data-mode="g2">그라데이션</button>
+        <button data-mode="image">이미지</button><button data-mode="none">투명</button>
+      </div></div>
+      <div class="two" id="bgColors">
+        <div class="sw"><input type="color" id="bg1" value="#ffffff"><span>색 1</span></div>
+        <div class="sw" id="bg2W" style="display:none"><input type="color" id="bg2" value="#f6e3ec"><span>색 2</span></div>
+      </div>
+      <div class="f" id="bgAngleF" style="display:none;margin-top:12px">
+        <label>그라데이션 방향 <span class="v" id="bgAngleV">160°</span></label>
+        <input type="range" id="bgAngle" min="0" max="360" step="5" value="160"></div>
+      <div id="bgImgF" style="display:none">
+        <div class="f" style="margin-top:12px"><label for="bgFile">배경 이미지</label><input type="file" id="bgFile" accept="image/*"></div>
+        <div class="two">
+          <div class="sw"><input type="color" id="ovColor" value="#000000"><span>오버레이 색</span></div>
+          <div class="f"><label>오버레이 투명도 <span class="v" id="ovAlphaV">30%</span></label>
+            <input type="range" id="ovAlpha" min="0" max="100" step="1" value="30"></div>
+        </div>
+        <div class="f"><label>배경 흐림 <span class="v" id="bgBlurV">0px</span></label>
+          <input type="range" id="bgBlur" min="0" max="20" step="1" value="0"></div>
+      </div>
+      <div class="two" style="margin-top:14px">
+        <div class="f"><label>테두리 <span class="v" id="borderWV">0px</span></label>
+          <input type="range" id="borderW" min="0" max="16" step="1" value="0"></div>
+        <div class="sw"><input type="color" id="borderC" value="#d8e3ec"><span>테두리 색</span></div>
+      </div>
+      <div class="f"><label>모서리 둥글기 <span class="v" id="radiusV">0px</span></label>
+        <input type="range" id="radius" min="0" max="80" step="1" value="0"></div>
+      </div></details>
+      <details class="sub"><summary>사이드 사진</summary>
+      <div class="subin">
+        <div class="f"><label for="sideFile">사진</label><input type="file" id="sideFile" accept="image/*"></div>
+        <div class="two">
+          <div class="f"><label for="sidePos">위치</label>
+            <select id="sidePos"><option value="left">왼쪽</option><option value="right">오른쪽</option><option value="top">위</option><option value="bottom">아래</option></select></div>
+        </div>
+        <div class="two">
+          <div class="f"><label>크기 <span class="v" id="sideWV">26%</span></label>
+            <input type="range" id="sideW" min="10" max="60" step="1" value="26"></div>
+          <div class="f"><label>확대 <span class="v" id="sideZoomV">100%</span></label>
+            <input type="range" id="sideZoom" min="100" max="300" step="2" value="100"></div>
+          <div class="f"><label>좌우 위치 <span class="v" id="sideXV">50%</span></label>
+            <input type="range" id="sideX" min="0" max="100" step="1" value="50"></div>
+          <div class="f"><label>상하 위치 <span class="v" id="sideYV">50%</span></label>
+            <input type="range" id="sideY" min="0" max="100" step="1" value="50"></div>
+          <div class="f"><label>사진 여백 <span class="v" id="sideInsetV">0px</span></label>
+            <input type="range" id="sideInset" min="0" max="90" step="2" value="0"></div>
+          <div class="f"><label>모서리 둥글기 <span class="v" id="sideRadV">0px</span></label>
+            <input type="range" id="sideRad" min="0" max="40" step="1" value="0"></div>
+        </div>
+        <div class="seg"><button id="sideClear">사진 빼기</button></div>
+        <p class="hint">사진이 캔버스 한쪽을 세로로 채우고 글은 나머지 폭에만 흐릅니다.</p>
+      </div></details>
+    </div>
+  </details>
+
+  <details class="group">
+    <summary>프리셋 · 저장</summary>
+    <div class="in">
+      <div class="f"><label for="presetName">지금 설정을 이름 붙여 저장</label>
+        <div class="inline-row">
+          <input type="text" id="presetName" placeholder="예: 명조 세로형">
+          <button class="btn" id="presetSave">저장</button>
+        </div></div>
+      <div class="f"><label>저장된 프리셋</label><div class="chips" id="presetList"></div></div>
+      <p class="hint">이름을 누르면 그 설정으로 바뀌고, × 를 누르면 지워집니다. 본문 글은 저장되지 않고 서식만 담겨요.</p>
+      <div class="f" style="margin-top:16px"><label>설정 코드로 주고받기</label>
+        <div class="seg"><button id="expBtn">설정 복사</button><button id="impBtn">설정 적용</button><button id="rstBtn">초기화</button></div></div>
+      <div class="f"><textarea id="cfgBox" style="min-height:74px;font-size:12px" placeholder="설정 코드"></textarea></div>
+      <details class="sub"><summary>저장 설정</summary>
+      <div class="subin">      <div class="two">
+        <div class="f"><label for="scale">해상도</label>
+          <select id="scale"><option value="1">1배</option><option value="2" selected>2배 (선명)</option><option value="3">3배</option></select></div>
+        <div class="f"><label for="fmt">형식</label>
+          <select id="fmt"><option value="png" selected>PNG</option><option value="jpg">JPG</option></select></div>
+      </div>
+      <div class="f"><label for="filename">파일 이름</label><input type="text" id="filename" value="log"></div>
+      </div></details>
+    </div>
+  </details>
+</div>
+
+<div class="save">
+  <button class="menu-btn" id="menuBtn">메뉴</button>
+  <button id="helpBtn">표기법</button>
+  <button id="copyBtn">복사</button>
+  <button id="oneBtn" class="primary">이미지 저장</button>
+  <button id="splitBtn">분할 저장</button>
+</div>
+</div>
+
+<div class="modal" id="helpModal">
+  <div class="box">
+    <h4>표기법</h4>
+    <p><code>&gt; 대사</code> 왼쪽 말풍선 · <code>&lt; 대사</code> 오른쪽 말풍선 (꺾쇠 뒤에 띄어쓰기 한 칸)</p>
+    <p><code>|a 문장</code> 강조 A 막대 · <code>|b 문장</code> 강조 B 막대. 여러 줄을 연달아 붙이면 하나의 막대로 묶입니다.</p>
+    <p><code>---</code> 구분선 · <code>===</code> 페이지 나눔</p>
+    <p>글자 꾸밈은 태그로 들어갑니다 — <code>&lt;b&gt;</code> 굵게, <code>&lt;i&gt;</code> 기울임, <code>&lt;c&gt;</code> 보조색, <code>&lt;ha&gt;</code> 형광, <code>&lt;q&gt;</code> 따옴표 강조. 툴바 버튼을 쓰면 직접 칠 일은 없어요.</p>
+    <p>괄호 자동 감지를 켜두면 ( ) 로 감싼 부분은 괄호 기호가 빠지고 작은 글씨로 나옵니다.</p>
+  </div>
+  <button data-close>닫기</button>
+</div>
+<div class="modal" id="shotModal">
+  <div class="shots" id="shots"></div>
+  <button data-close>닫기</button>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const page=$('page'),bgLayer=$('bgLayer'),overlay=$('overlay'),content=$('content'),
+      jpWrap=$('jpWrap'),titleBox=$('titleBox'),flow=$('flow'),footBox=$('footBox'),ed=$('text');
+const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+let ratio='auto',bgMode='solid',chatStyle='plain',align='left',brMode='keep-all',cols=1,weight='300';
+let bgImg=null,sideImg=null,customFont=null,photos=[],zoom=1;
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const V=id=>+$(id).value||0;
+function fillRange(el){
+  const mn=+el.min||0, mx=+el.max||100, v=+el.value;
+  el.style.setProperty('--p', ((v-mn)/(mx-mn)*100)+'%');
+}
+function fillAllRanges(){ document.querySelectorAll('input[type=range]').forEach(fillRange); }
+const S=id=>$(id).value;
+
+const TAGMAP={b:'tb',i:'ti',c:'c2',q:'qb',ha:'hl hA',hb:'hl hB'};
+const CLS2TAG={tb:'b',ti:'i',c2:'c',qb:'q',hA:'ha',hB:'hb'};
+const BLOCKMARK={mA:'|a ',mB:'|b ',mL:'> ',mL2:'>> ',mR:'< '};
+const MARKCLS={'|a':'mA','|b':'mB','>':'mL','>>':'mL2','<':'mR'};
+
+function serialize(root){
+  function inner(node){
+    let r='';
+    node.childNodes.forEach(n=>{
+      if(n.nodeType===3){ r+=n.nodeValue.replace(/\u00a0/g,' '); return; }
+      if(n.nodeName==='BR'){ r+='\n'; return; }
+      const cls=(n.className||'').toString().split(/\s+/);
+      const tk=Object.keys(CLS2TAG).find(c=>cls.includes(c));
+      let ic=inner(n);
+      if(tk){ r+='<'+CLS2TAG[tk]+'>'+ic+'</'+CLS2TAG[tk]+'>'; return; }
+      if(/^(DIV|P|LI)$/.test(n.nodeName)){
+        const mk=Object.keys(BLOCKMARK).find(c=>cls.includes(c));
+        let pre=mk?BLOCKMARK[mk]:'';
+        if(cls.includes('mN')) pre='@'+(cls.includes('sB')?'B':'A')+':'+((n.dataset&&n.dataset.name)||'')+': ';
+        if(ic==='\n') ic='';
+        r+=(r?'\n':'')+pre+ic;
+        return;
+      }
+      r+=ic;
+    });
+    return r;
+  }
+  return inner(root);
+}
+const TXT=()=>serialize(ed);
+function inline(s){
+  if($('smBracket').checked) s=s.replace(/\(([^)]{1,300})\)/g,(m,g)=>'<brk>'+g+'</brk>');
+  s=esc(s);
+  s=s.replace(/&lt;(\/?)(b|i|c|q|ha|hb|brk)&gt;/gi,(m,sl,tag)=>{
+    if(sl) return '</span>';
+    tag=tag.toLowerCase();
+    return '<span class="'+(tag==='brk'?'brk':TAGMAP[tag])+'">';
+  });
+  return s.replace(/\[사진(\d+)\]/g,(m,n)=>photos[+n-1]?`<img class="ph" src="${photos[+n-1]}">`:'');
+}
+
+function namedHTML(name,body,slot){
+  const n=esc(name);
+  const bar=$('nmBar').checked ? '<span class="nmbar nmS'+slot+'">\u2502</span>' : '';
+  return '<p class="namedline"><span class="nm nmS'+slot+'">'+n+bar+'</span><span class="nmbody">'+body+'</span></p>';
+}
+function parse(){
+  const lines=TXT().replace(/\s+$/,'').split('\n'), pages=[];
+  let buf='',para=[],chat=null,last=null,bar=[],barType=null,lastBlock=false;
+  const flushPara=()=>{if(para.length){buf+='<p>'+para.join('\n')+'</p>';para=[];lastBlock=false;}};
+  const closeChat=()=>{if(chat!==null){
+    const dparts=[];
+    if(S('chatY').trim()) dparts.push(S('chatY').trim()+'년');
+    if(S('chatM').trim()) dparts.push(S('chatM').trim()+'월');
+    if(S('chatD').trim()) dparts.push(S('chatD').trim()+'일');
+    const dt=($('chatDate').checked&&dparts.length)
+      ? '<div class="chatdate">'+esc(dparts.join(' '))+'</div>' : '';
+    const bar='';
+    buf+='<div class="chat">'+dt+chat+bar+'</div>';chat=null;last=null;lastBlock=true;}};
+  const closeBar=()=>{if(bar.length){buf+='<div class="qbar q'+barType+'"><p>'+bar.join('\n')+'</p></div>';bar=[];barType=null;lastBlock=true;}};
+  const flushPage=()=>{flushPara();closeChat();closeBar();pages.push(buf);buf='';};
+
+  lines.forEach(line=>{
+    const t=line.trim();
+    if(t==='==='){flushPage();return;}
+
+    const q=line.match(/^\s*\|([ab])\s?(.*)$/i);
+    if(q){
+      flushPara(); closeChat();
+      const ty=q[1].toUpperCase();
+      if(bar.length&&barType!==ty) closeBar();
+      barType=ty; bar.push(inline(q[2])); return;
+    }
+
+    const nmm=line.match(/^\s*@([AB]):([^:\n]{0,24}):\s?(.*)$/);
+    if(nmm){
+      flushPara(); closeChat(); closeBar();
+      buf+=namedHTML(nmm[2],inline(nmm[3]),nmm[1]); lastBlock=true; return;
+    }
+
+    const b2=line.match(/^\s*>>\s(.*)$/);
+    const b=b2?null:line.match(/^\s*([<>])\s(.*)$/);
+    if(b2||b){
+      flushPara(); closeBar();
+      const who=b2?'extra':(b[1]==='>'?'left':'right');
+      const dir=who==='extra'?S('extraSide'):who;
+      const body=b2?b2[1]:b[2];
+      if(chat===null) chat='';
+      const nm=S(who==='extra'?'extraName':who==='left'?'leftName':'rightName').trim();
+      const nick=(who!==last&&nm)?`<div class="nick">${esc(nm)}</div>`:'';
+      chat+=`<div class="msg ${dir}${who==='extra'?' extra':''}">${nick}<div class="bubble">${inline(body)||'&nbsp;'}</div></div>`;
+      last=who; return;
+    }
+
+    if(!t){
+      if(para.length){ flushPara(); return; }
+      if(chat!==null) return;            // 대화 묶음 안의 빈 줄은 무시
+      if(bar.length){ closeBar(); return; }  // 강조 묶음은 빈 줄에서 끊김
+      if(!lastBlock) buf+='<p>&nbsp;</p>';
+      return;
+    }
+    closeChat(); closeBar();
+    if(t==='---'){flushPara();buf+='<hr class="rule">';lastBlock=true;return;}
+    para.push(inline(line));
+  });
+  flushPage();
+  return pages;
+}
+
+function render(){
+  const t=S('title').trim(),s=S('subtitle').trim();
+  titleBox.innerHTML=(t?`<p class="h1">${inline(t)}</p>`:'')+(s?`<p class="h2">${inline(s)}</p>`:'');
+  titleBox.style.display=(t||s)?'':'none';
+  const f=S('foot').trim(), au=S('footAuthor').trim();
+  let fh = f?inline(f):'';
+  if(au) fh += (fh?'<span class="fsep">'+esc(S('footSep'))+'</span>':'')+inline(au);
+  footBox.innerHTML=fh; footBox.style.display=fh?'':'none';
+  const pages=parse();
+  $('edPh').style.display=TXT().trim()?'none':'';
+  flow.innerHTML=TXT().trim()
+    ? pages.map(p=>p||'<p>&nbsp;</p>').join('<hr class="pbrk preview-only">') : '';
+  apply();
+}
+
+const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;};
+
+function apply(){
+  const fam=S('font')==='__custom__'?(customFont?`'${customFont}',sans-serif`:'sans-serif'):S('font');
+  jpWrap.style.fontFamily=fam; jpWrap.style.fontWeight=weight; jpWrap.style.color=S('color');
+  jpWrap.style.textShadow=$('smShadow').checked?'0 1px 2px rgba(0,0,0,.28)':'none';
+
+  flow.style.fontSize=V('size')+'px';
+  flow.style.letterSpacing=S('ls')+'px';
+  flow.style.lineHeight=V('lh')+'px';
+  flow.style.textAlign=align; flow.style.wordBreak=brMode;
+  flow.style.setProperty('--pgap',V('pgap')+'px');
+  flow.classList.toggle('cols2',cols===2);
+  page.style.setProperty('--jp',(V('jp')||100)/100);
+
+  titleBox.style.textAlign=S('titleAlign');
+  titleBox.style.marginBottom=V('titleGap')+'px';
+  document.querySelectorAll('#titleBox .h1,#flow .h1').forEach(e=>{e.style.fontSize=V('titleSize')+'px';e.style.color=S('titleColor');});
+  document.querySelectorAll('#titleBox .h2,#flow .h2').forEach(e=>{e.style.fontSize=V('subSize')+'px';e.style.color=S('subColor');e.style.opacity='1';});
+  footBox.style.fontSize=V('footSize')+'px';
+  footBox.style.color=S('footColor');
+  footBox.style.opacity='1';
+  footBox.style.textAlign=S('footAlign');
+  footBox.style.marginTop=V('footGap')+'px';
+  flow.querySelectorAll('img.ph').forEach(i=>i.style.width=V('phW')+'%');
+
+  document.querySelectorAll('.c2').forEach(e=>e.style.color=S('c2'));
+  document.querySelectorAll('#flow .brk').forEach(e=>e.style.fontSize=V('brkSize')+'%');
+  document.querySelectorAll('#flow .nmSA').forEach(e=>e.style.color=S('nmColorA'));
+  document.querySelectorAll('#flow .nmSB').forEach(e=>e.style.color=S('nmColorB'));
+  flow.style.setProperty('--nmw',V('nmWidth')+'px');
+  ed.classList.toggle('bar',$('nmBar').checked);
+  ed.style.setProperty('--nmcA',S('nmColorA'));
+  ed.style.setProperty('--nmcB',S('nmColorB'));
+  document.querySelectorAll('.hA').forEach(e=>e.style.background=S('haC'));
+  document.querySelectorAll('.hB').forEach(e=>e.style.background=S('hbC'));
+  document.querySelectorAll('.qA,.mA').forEach(e=>e.style.borderLeftColor=S('uaC'));
+  document.querySelectorAll('.qB,.mB').forEach(e=>e.style.borderLeftColor=S('ubC'));
+
+  document.querySelectorAll('.chat').forEach(c=>{
+    c.style.background=chatStyle==='plain'?'transparent':S('chatBg');
+    c.style.padding=chatStyle==='plain'?'0':V('cPad')+'px';
+    c.style.fontSize=V('cSize')+'px'; c.style.lineHeight=V('cLh')+'px';
+    c.style.margin='0 0 '+V('pgap')+'px';
+  });
+  document.querySelectorAll('.msg').forEach(m=>m.style.marginBottom=V('cGap')+'px');
+  document.querySelectorAll('.nick').forEach(n=>n.style.margin='0 0 '+V('cName')+'px 2px');
+  document.querySelectorAll('.bubble').forEach(b=>{
+    const m=b.closest('.msg');
+    const key=m.classList.contains('extra')?'extra':(m.classList.contains('right')?'right':'left');
+    b.style.background=S(key+'Bg');
+    b.style.color=S(key+'Fg');
+    b.style.maxWidth=V('cW')+'%';
+    b.style.padding=Math.round(V('cPad')*.55)+'px '+V('cPad')+'px '+Math.round(V('cPad')*.8)+'px';
+  });
+
+  const W=V('width'); page.style.width=W+'px';
+  let H=null;
+  if(ratio!=='auto'){const[a,b]=ratio.split(':').map(Number);H=Math.round(W*b/a);}
+  page.style.height=H?H+'px':'auto';
+  content.style.justifyContent=H?S('vAlign'):'flex-start';
+  $('vAlignF').style.display=H?'':'none';
+  const sEl=$('sideImg');
+  if(sideImg){
+    const sw=V('sideW'), pos=S('sidePos'), ins=V('sideInset'), W=V('width');
+    const pv=V('pv'), ph=V('ph');
+    sEl.style.display='block';
+    sEl.style.backgroundImage='url('+sideImg+')';
+    sEl.style.backgroundPosition = V('sideX')+'% '+V('sideY')+'%';
+    sEl.style.borderRadius=V('sideRad')+'px';
+    const zoom2=V('sideZoom');
+    if(pos==='left'||pos==='right'){
+      sEl.style.backgroundSize = 'auto '+zoom2+'%';
+      sEl.style.top=ins+'px'; sEl.style.bottom=ins+'px'; sEl.style.height='auto';
+      sEl.style.width=sw+'%';
+      sEl.style.left = pos==='left'?ins+'px':'auto';
+      sEl.style.right= pos==='right'?ins+'px':'auto';
+      const band='calc('+sw+'% + '+(ph+ins)+'px)';
+      content.style.padding = pos==='left'
+        ? pv+'px '+ph+'px '+pv+'px '+band
+        : pv+'px '+band+' '+pv+'px '+ph+'px';
+    }else{
+      sEl.style.backgroundSize = zoom2+'% auto';
+      const h=Math.max(20,Math.round(W*sw/100));
+      sEl.style.left=ins+'px'; sEl.style.right=ins+'px'; sEl.style.width='auto';
+      sEl.style.height=h+'px';
+      sEl.style.top = pos==='top'?ins+'px':'auto';
+      sEl.style.bottom= pos==='bottom'?ins+'px':'auto';
+      const band=(h+ins+pv)+'px';
+      content.style.padding = pos==='top'
+        ? band+' '+ph+'px '+pv+'px '+ph+'px'
+        : pv+'px '+ph+'px '+band+' '+ph+'px';
+    }
+  }else{
+    sEl.style.display='none';
+    content.style.padding=V('pv')+'px '+V('ph')+'px';
+  }
+  page.style.borderRadius=V('radius')+'px';
+  page.style.border=V('borderW')?V('borderW')+'px solid '+S('borderC'):'none';
+
+  bgLayer.style.inset='0'; bgLayer.style.filter='none'; overlay.style.background='transparent';
+  if(bgMode==='solid') bgLayer.style.background=S('bg1');
+  else if(bgMode==='g2') bgLayer.style.background=`linear-gradient(${V('bgAngle')}deg,${S('bg1')},${S('bg2')})`;
+  else if(bgMode==='image'){
+    bgLayer.style.background=bgImg?`${S('bg1')} url(${bgImg}) center/cover no-repeat`:S('bg1');
+    if(V('bgBlur')){bgLayer.style.filter=`blur(${V('bgBlur')}px)`;bgLayer.style.inset=-V('bgBlur')*2+'px';}
+    overlay.style.background=hexA(S('ovColor'),V('ovAlpha')/100);
+  } else bgLayer.style.background='transparent';
+
+  const put=(id,txt)=>{const e=$(id);if(e)e.textContent=txt;};
+  put('nmWidthV',V('nmWidth')+'px');
+  put('sizeV',V('size')+'px'); put('lsV',S('ls')+'px'); put('lhV',V('lh')+'px');
+  put('pgapV',V('pgap')+'px'); put('jpV',V('jp')+'%'); put('phWV',V('phW')+'%');
+  put('titleSizeV',V('titleSize')+'px'); put('subSizeV',V('subSize')+'px');
+  put('titleGapV',V('titleGap')+'px'); put('footSizeV',V('footSize')+'px'); put('footGapV',V('footGap')+'px');
+  put('cSizeV',V('cSize')+'px'); put('cLhV',V('cLh')+'px'); put('cPadV',V('cPad')+'px');
+  put('cGapV',V('cGap')+'px'); put('cNameV',V('cName')+'px'); put('cWV',V('cW')+'%');
+  put('widthV',W+'px'); put('phV',V('ph')+'px'); put('pvV',V('pv')+'px');
+  put('bgAngleV',V('bgAngle')+'°'); put('ovAlphaV',V('ovAlpha')+'%'); put('bgBlurV',V('bgBlur')+'px');
+  put('borderWV',V('borderW')+'px'); put('radiusV',V('radius')+'px'); put('brkSizeV',V('brkSize')+'%'); put('sideWV',V('sideW')+'%'); put('sideZoomV',V('sideZoom')+'%'); put('sideXV',V('sideX')+'%'); put('sideYV',V('sideY')+'%'); put('sideInsetV',V('sideInset')+'px'); put('sideRadV',V('sideRad')+'px');
+
+  fillAllRanges();
+  if(typeof syncFontBtn==='function') syncFontBtn();
+  if(typeof paintHL==='function') paintHL();
+  $('warn').style.display=(ratio!=='auto'&&jpWrap.scrollHeight>content.clientHeight+2)?'block':'none';
+  applyZoom();
+}
+
+/* 줌 */
+function applyZoom(){
+  $('zoom').style.transform=`scale(${zoom})`;
+  $('zoom').style.width=page.offsetWidth*zoom+'px';
+  $('zoom').style.height=page.offsetHeight*zoom+'px';
+  $('zPct').textContent=Math.round(zoom*100)+'%';
+  $('zoomR').value=Math.round(zoom*100); fillRange($('zoomR'));
+}
+const setZoom=z=>{zoom=Math.min(2,Math.max(.15,z));applyZoom();};
+const fitZoom=()=>setZoom(Math.min(1,($('stage').clientWidth-34)/page.offsetWidth));
+$('zIn').onclick=()=>setZoom(zoom+.1);
+$('zOut').onclick=()=>setZoom(zoom-.1);
+$('zoomR').oninput=e=>{fillRange(e.target);setZoom(e.target.value/100);};
+$('zFit').onclick=fitZoom;
+window.addEventListener('resize',fitZoom);
+let pd=0,pz=1;
+$('stage').addEventListener('touchstart',e=>{
+  if(e.touches.length===2){pd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);pz=zoom;}
+},{passive:true});
+$('stage').addEventListener('touchmove',e=>{
+  if(e.touches.length===2&&pd){
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    setZoom(pz*d/pd);
+  }
+},{passive:true});
+$('stage').addEventListener('touchend',()=>{pd=0;});
+
+/* 입력 */
+const RE=['text','title','subtitle','foot','footAuthor','footSep','leftName','rightName','extraName','extraSide','chatDate','chatY','chatM','chatD','smBracket','nmBar'];
+$('rail').addEventListener('input',e=>{
+  if(e.target.type==='range') fillRange(e.target);
+  if(e.target.id==='cfgBox'||e.target.id==='presetName') return;
+  RE.includes(e.target.id)?render():apply();
+});
+$('rail').addEventListener('change',e=>{if(e.target.type==='checkbox')render();});
+
+function seg(id,key,cb){$(id).addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  [...$(id).children].forEach(x=>x.setAttribute('aria-pressed',x===b)); cb(b.dataset[key]);
+});}
+seg('ratioSeg','ratio',v=>{ratio=v;apply();});
+seg('colSeg','col',v=>{cols=+v;apply();});
+seg('alignSeg','align',v=>{align=v;apply();});
+seg('brSeg','br',v=>{brMode=v;apply();});
+seg('wSeg','w',v=>{weight=v;apply();});
+seg('chatSeg','style',v=>{
+  chatStyle=v;
+  if(v==='kakao'){$('chatBg').value='#b2c7da';$('leftBg').value='#ffffff';$('leftFg').value='#1a1a1a';$('extraBg').value='#eaf0f6';$('extraFg').value='#1a1a1a';$('rightBg').value='#fee500';$('rightFg').value='#1a1a1a';}
+  if(v==='imsg'){$('chatBg').value='#ffffff';$('leftBg').value='#e9e9eb';$('leftFg').value='#111111';$('extraBg').value='#dfe3e8';$('extraFg').value='#111111';$('rightBg').value='#0a84ff';$('rightFg').value='#ffffff';}
+  if(v==='plain'){$('leftBg').value='#f2f3f5';$('leftFg').value='#1a1a1a';$('extraBg').value='#eef1f6';$('extraFg').value='#1a1a1a';$('rightBg').value='#fdeaf1';$('rightFg').value='#1a1a1a';}
+  apply();
+});
+seg('bgSeg','mode',v=>{
+  bgMode=v;
+  $('bg2W').style.display=v==='g2'?'':'none';
+  $('bgAngleF').style.display=v==='g2'?'':'none';
+  $('bgImgF').style.display=v==='image'?'':'none';
+  $('bgColors').style.display=v==='none'?'none':'';
+  apply();
+});
+
+/* 선택 영역 기억 — 버튼을 누르면 선택이 풀리므로 미리 저장해 둔다 */
+let savedRange=null;
+document.addEventListener('pointerdown',e=>{
+  if(ed.contains(e.target)) return;
+  const sl=window.getSelection();
+  if(sl&&sl.rangeCount){
+    const r=sl.getRangeAt(0);
+    if(ed.contains(r.commonAncestorContainer)) savedRange=r.cloneRange();
+  }
+},true);
+function activeRange(){
+  const sl=window.getSelection();
+  if(sl&&sl.rangeCount){
+    const r=sl.getRangeAt(0);
+    if(ed.contains(r.commonAncestorContainer)) return r;
+  }
+  if(savedRange&&ed.contains(savedRange.commonAncestorContainer)) return savedRange;
+  return null;
+}
+
+/* 되돌리기 */
+let undoStack=[],redoStack=[],pendingSnap=null,histTimer=null;
+function pushHist(html){
+  if(undoStack[undoStack.length-1]===html) return;
+  undoStack.push(html);
+  if(undoStack.length>80) undoStack.shift();
+}
+function snap(){
+  if(pendingSnap!==null){ pushHist(pendingSnap); pendingSnap=null; clearTimeout(histTimer); }
+  pushHist(ed.innerHTML);
+  redoStack=[];
+}
+function restoreHist(html){ ed.innerHTML=html; render(); ed.focus(); }
+function undo(){
+  if(pendingSnap!==null){ pushHist(pendingSnap); pendingSnap=null; clearTimeout(histTimer); }
+  if(!undoStack.length) return;
+  redoStack.push(ed.innerHTML);
+  restoreHist(undoStack.pop());
+}
+function redo(){
+  if(!redoStack.length) return;
+  pushHist(ed.innerHTML);
+  restoreHist(redoStack.pop());
+}
+
+/* 툴바 */
+function ensureBlocks(){
+  [...ed.childNodes].forEach(n=>{
+    if(n.nodeType===3&&n.nodeValue.replace(/\n/g,'').trim()!==''){
+      const d=document.createElement('div'); ed.insertBefore(d,n); d.appendChild(n);
+    }
+  });
+  if(!ed.childNodes.length) ed.innerHTML='<div><br></div>';
+}
+function edBlocks(){
+  const r=activeRange();
+  if(!r) return [];
+  const top=n=>{let x=n; while(x&&x.parentNode&&x.parentNode!==ed) x=x.parentNode; return x&&x.parentNode===ed?x:null;};
+  const kids=[...ed.childNodes];
+  let a=top(r.startContainer), b=top(r.endContainer);
+  let i=kids.indexOf(a), j=kids.indexOf(b);
+  if(i<0) return [];
+  if(j<0) j=i;
+  return kids.slice(i,j+1).filter(n=>n.nodeType===1);
+}
+function topBlock(n){
+  let x=n;
+  while(x&&x.parentNode&&x.parentNode!==ed) x=x.parentNode;
+  return (x&&x.parentNode===ed&&x.nodeType===1)?x:null;
+}
+function isAtStart(block,node,off){
+  const r=document.createRange(); r.setStart(block,0); r.setEnd(node,off);
+  return r.toString().length===0;
+}
+function isAtEnd(block,node,off){
+  const r=document.createRange(); r.setStart(node,off); r.setEnd(block,block.childNodes.length);
+  return r.toString().length===0;
+}
+function cutHead(block,node,off){
+  const r=document.createRange(); r.setStart(block,0); r.setEnd(node,off);
+  const nb=document.createElement('div'); nb.className=block.className;
+  nb.appendChild(r.extractContents());
+  if(!nb.textContent) nb.innerHTML='<br>';
+  block.parentNode.insertBefore(nb,block);
+}
+function cutTail(block,node,off){
+  const r=document.createRange(); r.setStart(node,off); r.setEnd(block,block.childNodes.length);
+  const nb=document.createElement('div'); nb.className=block.className;
+  nb.appendChild(r.extractContents());
+  if(!nb.textContent) nb.innerHTML='<br>';
+  block.parentNode.insertBefore(nb,block.nextSibling);
+}
+function markBlocks(cls,name,slotCls){
+  const picked=[...ed.querySelectorAll('.picked')];
+  if(picked.length){
+    snap();
+    const nm=(typeof name!=='undefined')?name:null;
+    const sc=(typeof slotCls!=='undefined')?slotCls:null;
+    picked.forEach(b=>{
+      b.classList.remove('mA','mB','mL','mR','mL2','mN','sA','sB','picked');
+      if(b.dataset) delete b.dataset.name;
+      if(cls) b.classList.add(cls);
+      if(sc) b.classList.add(sc);
+      if(nm) b.dataset.name=nm;
+    });
+    render(); ed.focus(); return;
+  }
+  const r=activeRange();
+  if(!r){ ed.focus(); return; }
+  snap();
+  ensureBlocks();
+  const sl=window.getSelection();
+
+  let first=topBlock(r.startContainer), last=topBlock(r.endContainer);
+  if(!first||!last){ ed.focus(); return; }
+
+  // 드래그한 부분만 잘라내기 (해제는 자르지 않음)
+  if(cls&&!r.collapsed){
+    if(!isAtEnd(last,r.endContainer,r.endOffset)) cutTail(last,r.endContainer,r.endOffset);
+    if(!isAtStart(first,r.startContainer,r.startOffset)) cutHead(first,r.startContainer,r.startOffset);
+  }
+
+  const kids=[...ed.children];
+  let i=kids.indexOf(first), j=kids.indexOf(last);
+  if(i<0){ ed.focus(); return; }
+  if(j<0) j=i;
+  kids.slice(i,j+1).forEach(b=>{
+    b.classList.remove('mA','mB','mL','mR','mL2','mN','sA','sB');
+    if(b.dataset) delete b.dataset.name;
+    if(cls) b.classList.add(cls);
+    if(slotCls) b.classList.add(slotCls);
+    if(name) b.dataset.name=name;
+  });
+  if(sl) sl.removeAllRanges();
+  savedRange=null;
+  render(); ed.focus();
+}
+function wrapSel(cls){
+  const r=activeRange();
+  if(!r||r.collapsed){ ed.focus(); return; }
+  snap();
+
+  // 범위에 걸친 텍스트 조각만 각각 감싼다 (내용을 옮기지 않으므로 글자가 사라지지 않음)
+  const walker=document.createTreeWalker(ed,NodeFilter.SHOW_TEXT,null);
+  const hits=[]; let n;
+  while((n=walker.nextNode())){
+    if(!n.nodeValue||!n.nodeValue.length) continue;
+    let ok=false;
+    try{ ok=r.intersectsNode(n); }catch(_){ ok=false; }
+    if(ok) hits.push(n);
+  }
+  hits.forEach(node=>{
+    const len=node.nodeValue.length;
+    let start=(node===r.startContainer)?r.startOffset:0;
+    let end=(node===r.endContainer)?r.endOffset:len;
+    if(end>len) end=len;
+    if(end<=start) return;
+
+    let target=node;
+    if(end<len) target.splitText(end);
+    if(start>0) target=target.splitText(start);
+
+    // 줄바꿈은 색칠 밖으로 빼서 상자처럼 번지지 않게
+    const parts=target.nodeValue.split('\n');
+    const frag=document.createDocumentFragment();
+    parts.forEach((pt,idx)=>{
+      if(idx) frag.appendChild(document.createTextNode('\n'));
+      if(!pt) return;
+      if(/^\s*$/.test(pt)){ frag.appendChild(document.createTextNode(pt)); return; }
+      const head=pt.match(/^\s*/)[0], tail=pt.match(/\s*$/)[0];
+      const core=pt.slice(head.length, pt.length-tail.length);
+      if(head) frag.appendChild(document.createTextNode(head));
+      const sp=document.createElement('span'); sp.className=cls; sp.textContent=core;
+      frag.appendChild(sp);
+      if(tail) frag.appendChild(document.createTextNode(tail));
+    });
+    target.parentNode.replaceChild(frag,target);
+  });
+  const sl2=window.getSelection(); if(sl2) sl2.removeAllRanges();
+  savedRange=null;
+  render(); ed.focus();
+}
+function insertText(t){ snap(); ed.focus(); document.execCommand('insertText',false,t); render(); }
+
+ed.addEventListener('beforeinput',()=>{
+  if(pendingSnap===null) pendingSnap=ed.innerHTML;
+  clearTimeout(histTimer);
+  histTimer=setTimeout(()=>{ if(pendingSnap!==null){ pushHist(pendingSnap); pendingSnap=null; redoStack=[]; } },700);
+});
+ed.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'){
+    e.preventDefault();
+    e.shiftKey?redo():undo();
+  }
+});
+ed.addEventListener('paste',e=>{
+  e.preventDefault();
+  const t=(e.clipboardData||window.clipboardData).getData('text/plain');
+  document.execCommand('insertText',false,t); render();
+});
+
+$('toolbar').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.wrap) return wrapSel(TAGMAP[b.dataset.wrap]);
+  if(b.dataset.block) return insertText('\n'+b.dataset.block+'\n');
+  const act=b.dataset.act;
+  if(act==='nameA') return applyName('A');
+  if(act==='nameB') return applyName('B');
+  if(act==='undo') return undo();
+  if(act==='redo') return redo();
+  if(act==='clear'){
+    if(b.dataset.armed){
+      clearTimeout(+b.dataset.armed); delete b.dataset.armed;
+      b.textContent='비우기';
+      snap(); ed.innerHTML='<div><br></div>'; render();
+    }else{
+      b.textContent='정말 비울까요?';
+      b.dataset.armed=setTimeout(()=>{delete b.dataset.armed;b.textContent='비우기';},3000);
+    }
+  }
+  else if(act==='quote'){
+    const sl=window.getSelection();
+    const t=(sl&&!sl.isCollapsed&&ed.contains(sl.anchorNode))?sl.toString():'대사';
+    insertText('\u201c'+t+'\u201d');
+  }
+  else if(act==='photo'){ $('photoFile').click(); }
+});
+
+function markName(name,slot){
+  markBlocks(name?'mN':null, name||null, name?('s'+slot):null);
+}
+function applyName(slot){
+  const f=$('nmName'+slot);
+  const nm=f.value.trim();
+  if(!nm){
+    // 이름이 비어 있으면 입력칸을 열어준다 (확인창은 일부 브라우저에서 막힘)
+    let el=f.closest('details');
+    while(el){ el.open=true; el=el.parentElement&&el.parentElement.closest('details'); }
+    document.body.classList.add('menu-open');
+    setTimeout(()=>{f.scrollIntoView({block:'center'});f.focus();},60);
+    return;
+  }
+  markName(nm,slot);
+}
+document.querySelectorAll('[data-mark]').forEach(btn=>
+  btn.addEventListener('click',()=>markBlocks(MARKCLS[btn.dataset.mark]||null)));
+$('photoFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{photos.push(ev.target.result);insertText('\n[사진'+photos.length+']\n');};
+  r.readAsDataURL(f); e.target.value='';
+});
+$('sideFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=ev=>{sideImg=ev.target.result;apply();}; r.readAsDataURL(f);
+});
+$('sideClear').onclick=()=>{sideImg=null;$('sideFile').value='';apply();};
+$('bgFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=ev=>{bgImg=ev.target.result;apply();}; r.readAsDataURL(f);
+});
+$('fontFile').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const face=new FontFace('UF'+Date.now(),await f.arrayBuffer());
+  await face.load(); document.fonts.add(face); customFont=face.family;
+  $('font').value='__custom__'; apply();
+});
+
+/* ===== 설정 · 프리셋 ===== */
+const SKIP=['cfgBox','presetName','text','title','subtitle','foot','filename'];
+const fields=()=>[...document.querySelectorAll('#rail input,#rail select,#rail textarea')]
+  .filter(el=>el.id&&el.type!=='file'&&!SKIP.includes(el.id));
+function collect(){
+  const o={_r:ratio,_bg:bgMode,_c:chatStyle,_a:align,_br:brMode,_col:cols,_w:weight};
+  fields().forEach(el=>o[el.id]=el.type==='checkbox'?el.checked:el.value);
+  return o;
+}
+function applyCfg(o){
+  fields().forEach(el=>{if(o[el.id]!==undefined){el.type==='checkbox'?el.checked=o[el.id]:el.value=o[el.id];}});
+  if(o._r)ratio=o._r; if(o._bg)bgMode=o._bg; if(o._c)chatStyle=o._c;
+  if(o._a)align=o._a; if(o._br)brMode=o._br; if(o._col)cols=+o._col; if(o._w)weight=o._w;
+  const m=(id,k,v)=>[...$(id).children].forEach(b=>b.setAttribute('aria-pressed',b.dataset[k]==String(v)));
+  m('ratioSeg','ratio',ratio);m('bgSeg','mode',bgMode);m('chatSeg','style',chatStyle);
+  m('alignSeg','align',align);m('brSeg','br',brMode);m('colSeg','col',cols);m('wSeg','w',weight);
+  $('bg2W').style.display=bgMode==='g2'?'':'none';
+  $('bgAngleF').style.display=bgMode==='g2'?'':'none';
+  $('bgImgF').style.display=bgMode==='image'?'':'none';
+  $('bgColors').style.display=bgMode==='none'?'none':'';
+  render();
+}
+
+const KEY='logmaker.presets';
+let presets={};
+try{presets=JSON.parse(localStorage.getItem(KEY)||'{}');}catch(_){presets={};}
+function keepPresets(){try{localStorage.setItem(KEY,JSON.stringify(presets));}catch(_){}}
+function drawPresets(){
+  const names=Object.keys(presets);
+  $('presetList').innerHTML=names.length
+    ? names.map(n=>`<span class="chip"><button class="load" data-load="${encodeURIComponent(n)}">${n.replace(/</g,'&lt;')}</button><button class="del" data-del="${encodeURIComponent(n)}">×</button></span>`).join('')
+    : '<span class="empty">아직 저장한 프리셋이 없어요.</span>';
+}
+$('presetSave').onclick=()=>{
+  const n=S('presetName').trim();
+  if(!n) return $('presetName').focus();
+  presets[n]=collect(); keepPresets(); drawPresets(); $('presetName').value='';
+  $('presetSave').textContent='저장됨'; setTimeout(()=>$('presetSave').textContent='저장',1300);
+};
+$('presetList').onclick=e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.load){ applyCfg(presets[decodeURIComponent(b.dataset.load)]); }
+  else if(b.dataset.del){
+    const n=decodeURIComponent(b.dataset.del);
+    if(confirm(`‘${n}’ 프리셋을 지울까요?`)){delete presets[n];keepPresets();drawPresets();}
+  }
+};
+drawPresets();
+
+$('expBtn').onclick=()=>{
+  $('cfgBox').value=JSON.stringify(collect());
+  try{navigator.clipboard.writeText($('cfgBox').value);}catch(_){}
+  $('expBtn').textContent='복사됨'; setTimeout(()=>$('expBtn').textContent='설정 복사',1400);
+};
+$('impBtn').onclick=()=>{
+  try{applyCfg(JSON.parse($('cfgBox').value));}
+  catch(_){$('impBtn').textContent='코드 확인';setTimeout(()=>$('impBtn').textContent='설정 적용',1600);}
+};
+$('rstBtn').onclick=()=>{if(confirm('모두 초기화할까요? (프리셋은 남습니다)'))location.reload();};
+
+/* 저장 */
+// 여러 줄에 걸친 형광은 저장 라이브러리가 하나의 큰 상자로 뭉개므로,
+// 글자는 건드리지 않고 줄마다 사각형을 뒤에 깔아 칠한다.
+function paintHL(){
+  const layer=$('hlLayer'); if(!layer) return;
+  layer.innerHTML='';
+  const base=content.getBoundingClientRect();
+  const z=zoom||1;
+  flow.querySelectorAll('.hl').forEach(el=>{
+    const col=el.classList.contains('hA')?S('haC'):S('hbC');
+    const padX=2, padY=0, rad=2;
+    el.style.background='transparent';
+    const r=document.createRange(); r.selectNodeContents(el);
+    [...r.getClientRects()].forEach(rc=>{
+      if(!rc.width||!rc.height) return;
+      const d=document.createElement('div');
+      d.style.cssText='position:absolute;border-radius:'+rad+'px;background:'+col+
+        ';left:'+((rc.left-base.left)/z-padX)+'px;top:'+((rc.top-base.top)/z-padY)+'px'+
+        ';width:'+(rc.width/z+padX*2)+'px;height:'+(rc.height/z+padY*2)+'px';
+      layer.appendChild(d);
+    });
+  });
+}
+
+async function shoot(){
+  await document.fonts.ready;
+  flow.normalize();
+  paintHL();
+  document.body.classList.add('capturing');
+  const z=zoom; $('zoom').style.transform='scale(1)';
+  try{
+    return await html2canvas(page,{scale:+S('scale'),
+      backgroundColor:bgMode==='none'?null:'#ffffff',useCORS:true,logging:false});
+  } finally{
+    document.body.classList.remove('capturing');
+    $('zoom').style.transform=`scale(${z})`;
+  }
+}
+function dl(canvas,name){
+  const fmt=S('fmt');
+  const url=canvas.toDataURL(fmt==='png'?'image/png':'image/jpeg',.95);
+  if(isIOS) return url;
+  const a=document.createElement('a'); a.href=url; a.download=name+'.'+fmt; a.click(); return null;
+}
+function showShots(urls){
+  $('shots').innerHTML=urls.map(u=>`<img src="${u}">`).join('')+
+    '<p style="color:#fff;font-size:13px;text-align:center">이미지를 길게 눌러 ‘사진에 추가’</p>';
+  $('shotModal').classList.add('on');
+}
+$('oneBtn').onclick=async()=>{
+  const b=$('oneBtn'),t=b.textContent; b.disabled=true; b.textContent='저장 중…';
+  try{const u=dl(await shoot(),S('filename').trim()||'log'); if(u)showShots([u]);}
+  catch(err){console.error(err);alert('저장에 실패했어요.');}
+  finally{b.disabled=false;b.textContent=t;}
+};
+$('splitBtn').onclick=async()=>{
+  const b=$('splitBtn'),t=b.textContent; b.disabled=true;
+  const pages=parse(),base=S('filename').trim()||'log',urls=[],keep=flow.innerHTML;
+  try{
+    for(let i=0;i<pages.length;i++){
+      b.textContent=`${i+1}/${pages.length}`;
+      flow.innerHTML=pages[i]||'<p>&nbsp;</p>'; apply();
+      await new Promise(r=>setTimeout(r,90));
+      const u=dl(await shoot(),`${base}_${i+1}`);
+      if(u) urls.push(u); else await new Promise(r=>setTimeout(r,320));
+    }
+    if(urls.length) showShots(urls);
+  }catch(err){console.error(err);alert('저장에 실패했어요.');}
+  finally{flow.innerHTML=keep;apply();b.disabled=false;b.textContent=t;}
+};
+$('copyBtn').onclick=async()=>{
+  const b=$('copyBtn'); b.disabled=true; b.textContent='복사 중…';
+  try{
+    await navigator.clipboard.write([new ClipboardItem({'image/png':
+      shoot().then(c=>new Promise(r=>c.toBlob(r,'image/png')))})]);
+    b.textContent='복사됨';
+  }catch(err){console.error(err);b.textContent='복사 불가';}
+  finally{setTimeout(()=>{b.textContent='복사';b.disabled=false;},1600);}
+};
+let pickMode=false;
+$('pickBtn').onclick=()=>{
+  pickMode=!pickMode;
+  if(pickMode) ensureBlocks();
+  $('pickBtn').setAttribute('aria-pressed',pickMode);
+  ed.classList.toggle('picking',pickMode);
+  ed.contentEditable = pickMode ? 'false' : 'true';
+  if(!pickMode) ed.querySelectorAll('.picked').forEach(b=>b.classList.remove('picked'));
+};
+ed.addEventListener('click',e=>{
+  if(!pickMode) return;
+  const n=e.target.nodeType===3?e.target.parentNode:e.target;
+  const b=topBlock(n);
+  if(b) b.classList.toggle('picked');
+});
+// 글꼴 목록을 각 글꼴로 보여주기
+function buildFontList(){
+  const sel=$('font'), list=$('fontList');
+  list.innerHTML='';
+  [...sel.options].forEach(o=>{
+    const b=document.createElement('button');
+    b.type='button'; b.textContent=o.textContent; b.dataset.v=o.value;
+    if(o.value!=='__custom__') b.style.fontFamily=o.value;
+    list.appendChild(b);
+  });
+}
+function syncFontBtn(){
+  const sel=$('font'), btn=$('fontBtn');
+  const o=sel.options[sel.selectedIndex];
+  if(!o) return;
+  btn.textContent=o.textContent;
+  btn.style.fontFamily = sel.value==='__custom__'
+    ? (customFont?"'"+customFont+"',sans-serif":'inherit') : sel.value;
+  [...$('fontList').children].forEach(b=>b.setAttribute('aria-selected',b.dataset.v===sel.value));
+}
+$('fontBtn').onclick=e=>{e.stopPropagation();$('fontList').classList.toggle('on');};
+$('fontList').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  $('font').value=b.dataset.v;
+  $('fontList').classList.remove('on');
+  $('font').dispatchEvent(new Event('input',{bubbles:true}));
+  syncFontBtn();
+});
+document.addEventListener('click',()=>$('fontList').classList.remove('on'));
+buildFontList();
+
+$('menuBtn').onclick=()=>{document.body.classList.toggle('menu-open');setTimeout(fitZoom,300);};
+$('backdrop').onclick=()=>document.body.classList.remove('menu-open');
+$('helpBtn').onclick=()=>$('helpModal').classList.add('on');
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('.modal').classList.remove('on'));
+
+ed.innerHTML='<div><br></div>';
+render(); setTimeout(fitZoom,120);
+</script>
+</body>
+</html>
