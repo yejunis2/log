@@ -6,7 +6,7 @@
 <title>로그 이미지 생성기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=Hahmlet:wght@200;300;400;500;600&family=IBM+Plex+Sans+KR:wght@200;300;400;500;600&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@200;300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Jua&family=Noto+Sans+KR:wght@300;400;500;700&family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=Hahmlet:wght@200;300;400;500;600&family=IBM+Plex+Sans+KR:wght@200;300;400;500;600&family=Nanum+Myeongjo:wght@400;700;800&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@200;300;400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -20,11 +20,16 @@ html,body{height:100%;margin:0;}
 body{font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif;
   background:#fff;color:var(--ink);-webkit-text-size-adjust:100%;
   display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:none;font-size:14px;}
-.side{display:flex;flex-direction:column;flex:0 0 auto;min-height:0;}
+.side{display:contents;}
+#backdrop{display:none!important;}
+body.menu-open #backdrop{display:block;}
+.menu-btn{flex:0 0 auto!important;width:50px;}
 body.capturing .preview-only{display:none!important;}
+body.menu-open .rail{transform:none;}
+body.menu-open .stage{max-height:calc(100dvh - 52dvh - 74px);}
 
 /* ===== 미리보기 ===== */
-.stage{flex:1 1 auto;min-height:0;position:relative;overflow:auto;-webkit-overflow-scrolling:touch;
+.stage{flex:1 1 auto;min-height:0;padding-bottom:78px;position:relative;overflow:auto;-webkit-overflow-scrolling:touch;
   padding:16px;padding-top:calc(16px + env(safe-area-inset-top));background:#fff;
   display:flex;flex-direction:column;}
 .stage-inner{flex:1 0 auto;display:flex;justify-content:center;align-items:flex-start;min-width:100%;width:max-content;}
@@ -44,6 +49,7 @@ body.capturing .preview-only{display:none!important;}
   box-shadow:0 4px 20px rgba(28,39,51,.13),0 0 0 1px rgba(28,39,51,.06);}
 #bgLayer,#overlay{position:absolute;inset:0;}
 #bgLayer{background-size:cover;background-position:center;}
+#sideImg{position:absolute;top:0;bottom:0;display:none;background-position:center;background-repeat:no-repeat;}
 #content{position:relative;height:100%;display:flex;flex-direction:column;padding:70px 50px;}
 #jpWrap{width:calc(100% / var(--jp));transform:scaleX(var(--jp));transform-origin:left top;position:relative;z-index:1;}
 #hlLayer{position:absolute;inset:0;z-index:0;pointer-events:none;}
@@ -59,8 +65,9 @@ body.capturing .preview-only{display:none!important;}
 .hl{border-radius:2px;}
 #flow .qbar{border-left:3px solid #6bb3ae;padding-left:16px;margin:0 0 var(--pgap,14px);}
 #flow .qbar p:last-child{margin-bottom:0;}
-.brk{opacity:.72;}
+.brk{}
 #footBox{opacity:.75;}
+#footBox .fsep{margin:0 7px;opacity:.5;}
 #flow .namedline{display:flex;align-items:flex-start;margin:0 0 var(--pgap,14px);}
 #flow .nm{flex:0 0 var(--nmw,72px);width:var(--nmw,72px);display:flex;align-items:flex-start;padding-right:10px;}
 #flow .nmbar{margin-left:auto;opacity:.5;}
@@ -71,6 +78,9 @@ body.capturing .preview-only{display:none!important;}
 .editor .sB{--nmc:var(--nmcB);}
 #flow .nm{margin-right:8px;}
 .chat{border-radius:10px;}
+#flow .chatdate{text-align:center;font-size:.82em;opacity:.55;margin:0 0 12px;}
+#flow .chatbar{margin:14px 0 0;padding:9px 15px;border-radius:999px;
+  background:rgba(255,255,255,.78);font-size:.88em;opacity:.6;}
 .msg{display:flex;flex-direction:column;}
 .msg.right{align-items:flex-end;}
 .msg.left{align-items:flex-start;}
@@ -80,12 +90,15 @@ body.capturing .preview-only{display:none!important;}
 .msg.right .bubble{border-top-right-radius:5px;}
 
 /* ===== 컨트롤 ===== */
-.rail{flex:0 0 216px;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--card);border-top:1px solid var(--line);padding-bottom:10px;}
+.rail{position:fixed;left:0;right:0;bottom:62px;height:52dvh;z-index:50;
+  transform:translateY(calc(100% + 64px));transition:transform .25s ease;
+  box-shadow:0 -10px 26px rgba(28,39,51,.13);border-top:1px solid var(--line);
+  border-radius:16px 16px 0 0;padding-bottom:16px;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--card);border-top:1px solid var(--line);padding-bottom:10px;}
 .group{border-bottom:1px solid var(--line);}
 .group>summary{list-style:none;cursor:pointer;padding:15px 18px;display:flex;align-items:center;gap:9px;
   font-size:14px;font-weight:700;letter-spacing:.01em;color:#e08fae;}
-.group>summary::before{content:'';width:7px;height:7px;border-radius:50%;background:#f6c9d9;flex:0 0 auto;}
-.group[open]>summary::before{background:#e08fae;}
+.group>summary::before{content:'';width:13px;height:12px;flex:0 0 auto;background-repeat:no-repeat;background-size:13px 12px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='12' viewBox='0 0 13 12' fill='%23e8a8c2' shape-rendering='crispEdges'%3E%3Crect x='2' y='1' width='4' height='1'/%3E%3Crect x='7' y='1' width='4' height='1'/%3E%3Crect x='1' y='2' width='1' height='3'/%3E%3Crect x='11' y='2' width='1' height='3'/%3E%3Crect x='6' y='2' width='1' height='1'/%3E%3Crect x='2' y='5' width='1' height='2'/%3E%3Crect x='10' y='5' width='1' height='2'/%3E%3Crect x='3' y='7' width='1' height='1'/%3E%3Crect x='9' y='7' width='1' height='1'/%3E%3Crect x='4' y='8' width='1' height='1'/%3E%3Crect x='8' y='8' width='1' height='1'/%3E%3Crect x='5' y='9' width='1' height='1'/%3E%3Crect x='7' y='9' width='1' height='1'/%3E%3Crect x='6' y='10' width='1' height='1'/%3E%3C/svg%3E");}
+.group[open]>summary::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='12' viewBox='0 0 13 12' fill='%23e08fae' shape-rendering='crispEdges'%3E%3Crect x='2' y='1' width='4' height='1'/%3E%3Crect x='7' y='1' width='4' height='1'/%3E%3Crect x='1' y='2' width='11' height='3'/%3E%3Crect x='2' y='5' width='9' height='2'/%3E%3Crect x='3' y='7' width='7' height='1'/%3E%3Crect x='4' y='8' width='5' height='1'/%3E%3Crect x='5' y='9' width='3' height='1'/%3E%3Crect x='6' y='10' width='1' height='1'/%3E%3C/svg%3E");}
 .group>summary::-webkit-details-marker{display:none;}
 .group>summary::after{content:'▾';margin-left:auto;font-size:12px;letter-spacing:0;color:#eeaec6;}
 .group[open]>summary::after{content:'▴';}
@@ -98,14 +111,14 @@ body.capturing .preview-only{display:none!important;}
 .sub>summary::after{content:'▾';margin-left:auto;color:var(--sub);font-size:11px;}
 .sub[open]>summary::after{content:'▴';}
 .subin{padding-bottom:6px;}
-.f{margin-bottom:14px;}
+.f{margin-bottom:11px;}
 .f:last-child{margin-bottom:0;}
-.f>label{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--sub);margin-bottom:6px;}
+.f>label{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--sub);margin-bottom:4px;}
 .f .v{font-variant-numeric:tabular-nums;font-weight:700;color:var(--deep);}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}
 
-input[type=text],select,textarea{width:100%;padding:11px 12px;font:inherit;font-size:16px;color:var(--ink);
+input[type=text],select,textarea{width:100%;padding:6px 10px;line-height:1.2;font:inherit;font-size:16px;color:var(--ink);
   background:var(--field);border:1px solid var(--line);border-radius:11px;outline:none;appearance:none;-webkit-appearance:none;}
 select{background-image:linear-gradient(45deg,transparent 50%,var(--sub) 50%),linear-gradient(135deg,var(--sub) 50%,transparent 50%);
   background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px,5px;background-repeat:no-repeat;padding-right:34px;}
@@ -120,37 +133,57 @@ textarea{resize:vertical;min-height:170px;line-height:1.65;font-size:15px;}
 .edph{position:absolute;top:12px;left:14px;color:var(--sub);font-size:15px;pointer-events:none;}
 .editor .mA,.editor .mB{border-left:3px solid #6bb3ae;padding-left:11px;}
 .editor .mB{border-left-color:#eaa94f;}
+.editor.picking{cursor:pointer;}
+.editor .picked{background:var(--pale);border-radius:6px;width:fit-content;max-width:100%;padding:0 3px;}
 .editor .mL{padding-left:11px;border-left:3px solid var(--line);}
 .editor .mL2{padding-left:11px;border-left:3px dashed var(--sky);}
 .editor .mR{padding-right:11px;border-right:3px solid var(--sky);text-align:right;}
 input[type=file]{font-size:12.5px;color:var(--sub);}
-input[type=color]{width:100%;height:38px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--field);}
+input[type=color]{width:100%;height:28px;padding:2px;border:1px solid var(--line);border-radius:10px;background:var(--field);}
 .sw{display:flex;flex-direction:column;gap:5px;}
 .sw span{font-size:11.5px;color:var(--sub);text-align:center;}
 
-input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:30px;background:none;}
-input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--pale);border-radius:99px;}
-input[type=range]::-moz-range-track{height:4px;background:var(--pale);border-radius:99px;}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-10px;
-  background:var(--card);border:2px solid var(--sky);border-radius:50%;box-shadow:0 1px 3px rgba(28,39,51,.2);cursor:pointer;}
-input[type=range]::-moz-range-thumb{width:22px;height:22px;background:var(--card);border:2px solid var(--sky);border-radius:50%;}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:26px;background:none;}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:0;
+  background:linear-gradient(to right,#f0b6cb 0 var(--p,50%),var(--pale) var(--p,50%) 100%);}
+input[type=range]::-moz-range-track{height:6px;border-radius:0;
+  background:linear-gradient(to right,#f0b6cb 0 var(--p,50%),var(--pale) var(--p,50%) 100%);}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:18px;margin-top:-6px;
+  background:var(--sky);border:0;border-radius:0;box-shadow:0 1px 3px rgba(28,39,51,.22);cursor:pointer;}
+input[type=range]::-moz-range-thumb{width:12px;height:18px;background:var(--sky);border:0;border-radius:0;}
 
+.fontpick{position:relative;}
+#fontBtn{width:100%;padding:6px 10px;line-height:1.2;text-align:left;font:inherit;font-size:16px;color:var(--ink);
+  background:var(--field);border:1px solid var(--line);border-radius:11px;cursor:pointer;}
+.fontlist{display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:60;
+  background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;
+  box-shadow:0 10px 26px rgba(28,39,51,.16);max-height:230px;overflow-y:auto;}
+.fontlist.on{display:block;}
+.fontlist button{display:block;width:100%;text-align:left;padding:8px 11px;font-size:15px;line-height:1.35;
+  background:none;border:0;border-radius:7px;color:var(--ink);cursor:pointer;}
+.fontlist button[aria-selected=true]{background:var(--pale);color:var(--deep);font-weight:700;}
+.datebox{display:flex;align-items:center;gap:7px;}
+.datebox input{flex:1 1 0;min-width:0;text-align:center;padding:6px 4px;line-height:1.2;font:inherit;font-size:16px;
+  color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:11px;outline:none;
+  -moz-appearance:textfield;appearance:textfield;}
+.datebox input::-webkit-outer-spin-button,.datebox input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.datebox input:focus{border-color:var(--sky);box-shadow:0 0 0 3px var(--pale);}
+.datebox span{flex:0 0 auto;font-size:13px;color:var(--sub);}
 .seg{display:flex;gap:3px;background:var(--field);padding:4px;border-radius:12px;}
 .seg.wrap{flex-wrap:wrap;}
-.seg button{flex:1;min-width:0;padding:10px 3px;font:inherit;font-size:12.5px;color:var(--sub);
+.seg button{flex:1;min-width:0;padding:8px 3px;font:inherit;font-size:12.5px;color:var(--sub);
   background:none;border:0;border-radius:9px;cursor:pointer;white-space:nowrap;}
 .seg button[aria-pressed=true]{background:var(--card);color:var(--deep);font-weight:700;box-shadow:0 1px 2px rgba(28,39,51,.12);}
-.chk{display:flex;align-items:center;gap:9px;font-size:13.5px;padding:8px 0;color:var(--ink);}
+.chk{display:flex;align-items:center;gap:9px;font-size:13.5px;padding:5px 0;color:var(--ink);}
 .chk input{width:19px;height:19px;accent-color:var(--sky);}
 .hint{font-size:12px;color:var(--sub);line-height:1.55;margin:9px 0 0;}
 code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;font-size:11.5px;}
 
-.toolbar{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;}
+.toolbar{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
 .toolbar button{padding:8px 11px;font:inherit;font-size:12.5px;font-weight:600;
   background:var(--field);color:var(--ink);border:1px solid var(--line);border-radius:9px;cursor:pointer;}
 .toolbar button.blk{color:var(--deep);background:var(--pale);border-color:#f4d7e2;}
 .toolbar button.clr{color:#b06070;background:#fdeef1;border-color:#f4dbe1;}
-
 .inline-row{display:flex;gap:8px;}
 .inline-row .btn{flex:0 0 auto;padding:0 16px;font:inherit;font-size:13.5px;font-weight:700;
   background:var(--sky);color:#fff;border:0;border-radius:11px;cursor:pointer;}
@@ -160,9 +193,9 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
 .chip .del{padding:8px 11px 8px 4px;font:inherit;font-size:13px;color:var(--sub);background:none;border:0;cursor:pointer;}
 .empty{font-size:12.5px;color:var(--sub);}
 
-.save{flex:0 0 auto;display:flex;gap:8px;padding:11px 14px;padding-bottom:calc(11px + env(safe-area-inset-bottom));
+.save{position:fixed;left:0;right:0;bottom:0;z-index:51;display:flex;gap:8px;padding:11px 14px;padding-bottom:calc(11px + env(safe-area-inset-bottom));
   background:var(--card);border-top:1px solid var(--line);}
-.save button{flex:1;padding:13px 5px;font:inherit;font-size:14px;font-weight:700;border-radius:12px;cursor:pointer;
+.save button{flex:1;padding:11px 4px;font:inherit;font-size:12.5px;font-weight:700;border-radius:12px;cursor:pointer;
   background:var(--card);color:var(--deep);border:1px solid var(--line);line-height:1.25;}
 .save button.primary{background:var(--sky);color:#fff;border-color:var(--sky);}
 .save button:disabled{opacity:.55;}
@@ -181,7 +214,13 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   body{flex-direction:row;}
   .stage{flex:1 1 auto;height:100dvh;}
   .side{width:440px;flex:0 0 440px;display:flex;flex-direction:column;height:100dvh;border-left:1px solid var(--line);background:var(--card);}
-  .rail{flex:1 1 auto;border-top:0;}
+  .rail{position:static;transform:none;height:auto;flex:1 1 auto;border-top:0;box-shadow:none;border-radius:0;padding-bottom:10px;}
+  body.menu-open .stage{max-height:none;}
+  .save button{font-size:14px;padding:13px 5px;}
+  .save{position:static;}
+  .stage{padding-bottom:16px;}
+  .menu-btn{display:none;}
+  #backdrop{display:none!important;}
   .editor{min-height:340px;max-height:52vh;}
 }
 </style>
@@ -192,7 +231,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   <span class="warn preview-only" id="warn">내용이 캔버스 밖으로 넘쳤어요</span>
   <div class="stage-inner"><div id="zoom">
     <div id="page">
-      <div id="bgLayer"></div><div id="overlay"></div>
+      <div id="bgLayer"></div><div id="overlay"></div><div id="sideImg"></div>
       <div id="content"><div id="hlLayer"></div><div id="jpWrap">
         <div id="titleBox"></div><div id="flow"></div><div id="footBox"></div>
       </div></div>
@@ -207,6 +246,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   </div>
 </div>
 
+<div id="backdrop"></div>
 <div class="side">
 <div class="rail" id="rail">
 
@@ -219,7 +259,6 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <button data-wrap="b"><b>굵게</b></button>
         <button data-wrap="i"><i>기울임</i></button>
         <button data-act="quote">“ ”</button>
-        <button data-wrap="d">대사</button>
         <button data-wrap="c">보조색</button>
         <button data-wrap="ha">형광 A</button>
         <button data-wrap="hb">형광 B</button>
@@ -244,8 +283,10 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <button data-mark="&gt;&gt;">추가 말풍선</button>
       </div>
       <div class="seg" style="margin-top:6px">
-        <button data-mark="">줄 표시 해제</button>
+        <button id="pickBtn">문장 선택</button>
+        <button data-mark="">선택한 문장 해제</button>
       </div>
+      <p class="hint">‘문장 선택’을 켜고 원하는 문장 선택 후 ‘강조, 이름, 말풍선’ 을 누르면 한 번에 적용됩니다.</p>
       <input type="file" id="photoFile" accept="image/*" style="display:none">
       <p class="hint"><code>===</code> 는 페이지가 나뉘는 자리예요. 분할 저장을 누르면 그 지점마다 한 장씩 만들어집니다.</p>
       <details class="sub"><summary>제목 · 하단</summary>
@@ -267,8 +308,13 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <div class="sw"><input type="color" id="titleColor" value="#3b3b3b"><span>제목 색</span></div>
         <div class="sw"><input type="color" id="subColor" value="#3b3b3b"><span>소제목 색</span></div>
       </div>
-      <div class="f"><label for="foot">하단</label><input type="text" id="foot" placeholder="비워도 됨"></div>
       <div class="two">
+        <div class="f"><label for="foot">하단</label><input type="text" id="foot" placeholder="비워도 됨"></div>
+        <div class="f"><label for="footAuthor">작가명</label><input type="text" id="footAuthor" placeholder="비워도 됨"></div>
+      </div>
+      <div class="three">
+        <div class="f"><label for="footSep">구분</label>
+          <select id="footSep"><option value="·">·</option><option value="|">|</option><option value="—">—</option><option value="/">/</option></select></div>
         <div class="f"><label for="footAlign">하단 배치</label>
           <select id="footAlign"><option value="left">왼쪽</option><option value="center">가운데</option><option value="right">오른쪽</option></select></div>
         <div class="f"><label>하단 크기 <span class="v" id="footSizeV">14px</span></label>
@@ -284,16 +330,24 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   <details class="group">
     <summary>글자</summary>
     <div class="in">
-      <div class="f"><label for="font">글꼴</label>
-        <select id="font">
+      <div class="f"><label>글꼴</label>
+        <div class="fontpick">
+          <button type="button" id="fontBtn">프리텐다드</button>
+          <div class="fontlist" id="fontList"></div>
+        </div>
+        <select id="font" style="display:none">
           <option value="Pretendard,sans-serif">프리텐다드</option>
+          <option value="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif">애플 기본 (아이폰·맥)</option>
           <option value="'IBM Plex Sans KR',sans-serif">IBM 플렉스 산스</option>
+          <option value="'Noto Sans KR',sans-serif">본고딕</option>
           <option value="'Gowun Dodum',sans-serif">고운돋움</option>
           <option value="'Nanum Myeongjo',serif">나눔명조</option>
           <option value="'Noto Serif KR',serif">본명조</option>
           <option value="'Gowun Batang',serif">고운바탕</option>
           <option value="'Hahmlet',serif">함렛</option>
           <option value="'Nanum Pen Script',cursive">나눔손글씨 펜</option>
+          <option value="'Do Hyeon',sans-serif">도현</option>
+          <option value="Jua,sans-serif">주아</option>
           <option value="__custom__">내가 올린 글꼴</option>
         </select></div>
       <div class="f"><label for="fontFile">글꼴 파일 추가 (.ttf · .otf · .woff2)</label>
@@ -340,21 +394,11 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <div class="sw"><input type="color" id="hbC" value="#fdf6cf"><span>형광 B</span></div>
       </div>
       <div class="two" style="margin-top:14px">
-        <div class="f"><label for="dStyle">대사 꾸밈</label>
-          <select id="dStyle">
-            <option value="color">색만</option>
-            <option value="bold">굵게</option>
-            <option value="boldcolor">굵게 + 색</option>
-            <option value="capsule">둥근 배경</option>
-            <option value="under">밑줄</option>
-            <option value="wave">물결 밑줄</option>
-            <option value="big">살짝 크게</option>
-          </select></div>
-        <div class="sw"><input type="color" id="dColor" value="#c0698a"><span>대사 색</span></div>
       </div>
       <div style="margin-top:8px">
-        <label class="chk"><input type="checkbox" id="smQuote"> 따옴표 자동 감지 — 문단 속 “대사”에 자동 적용</label>
-        <label class="chk"><input type="checkbox" id="smBracket"> 괄호 자동 감지 — (속마음)을 흐리게</label>
+        <label class="chk"><input type="checkbox" id="smBracket"> 괄호 자동 감지 — ( ) 기호를 빼고 작게</label>
+        <div class="f"><label>괄호 글자 크기 <span class="v" id="brkSizeV">88%</span></label>
+          <input type="range" id="brkSize" min="55" max="100" step="1" value="88"></div>
         <label class="chk"><input type="checkbox" id="smShadow"> 글자 그림자</label>
       </div>
       </div></details>
@@ -371,7 +415,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
         <div class="f"><label>이름 칸 너비 <span class="v" id="nmWidthV">72px</span></label>
           <input type="range" id="nmWidth" min="30" max="200" step="2" value="72"></div>
         <label class="chk"><input type="checkbox" id="nmBar"> 이름 뒤에 세로선 넣기</label>
-        <p class="hint">여기에 두 사람을 적어두고, 본문 툴바의 이름 A·B 버튼으로 대사 줄에 답니다. 떼려면 ‘줄 표시 해제’를 누르세요.</p>
+        <p class="hint">여기에 두 사람을 적어두고, 본문 툴바의 이름 A·B 버튼으로 대사 줄에 답니다. 위 체크를 켜면 이름 뒤에 세로선이 붙고, 끄면 없어집니다.</p>
       </div></details>
     </div>
   </details>
@@ -379,47 +423,70 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   <details class="group">
     <summary>말풍선</summary>
     <div class="in">
-      <div class="f"><div class="seg" id="chatSeg">
+      <div class="f"><label>스타일</label><div class="seg" id="chatSeg">
         <button data-style="plain" aria-pressed="true">심플</button>
         <button data-style="kakao">카카오톡</button><button data-style="imsg">아이메시지</button>
-      </div></div>
-      <div class="two">
-        <div class="f"><label for="leftName">왼쪽 이름</label><input type="text" id="leftName" placeholder="비우면 숨김"></div>
-        <div class="f"><label for="rightName">오른쪽 이름</label><input type="text" id="rightName" placeholder="비우면 숨김"></div>
       </div>
-      <div class="two">
-        <div class="f"><label for="extraName">추가 이름</label><input type="text" id="extraName" placeholder="비우면 숨김"></div>
-        <div class="f"><label for="extraSide">추가 방향</label>
-          <select id="extraSide"><option value="left">왼쪽</option><option value="right">오른쪽</option></select></div>
-      </div>
-      <div class="f"><label>대화창 배경</label>
-        <input type="color" id="chatBg" value="#b2c7da"></div>
-      <div class="two">
-        <div class="sw"><input type="color" id="leftBg" value="#f2f3f5"><span>왼쪽 풍선</span></div>
-        <div class="sw"><input type="color" id="leftFg" value="#1a1a1a"><span>왼쪽 글자</span></div>
-      </div>
-      <div class="two" style="margin-top:10px">
-        <div class="sw"><input type="color" id="rightBg" value="#fdeaf1"><span>오른쪽 풍선</span></div>
-        <div class="sw"><input type="color" id="rightFg" value="#1a1a1a"><span>오른쪽 글자</span></div>
-      </div>
-      <div class="two" style="margin-top:10px">
-        <div class="sw"><input type="color" id="extraBg" value="#eef1f6"><span>추가 풍선</span></div>
-        <div class="sw"><input type="color" id="extraFg" value="#1a1a1a"><span>추가 글자</span></div>
-      </div>
-      <div class="two" style="margin-top:14px">
-        <div class="f"><label>글자 크기 <span class="v" id="cSizeV">15px</span></label>
-          <input type="range" id="cSize" min="8" max="40" step="1" value="15"></div>
-        <div class="f"><label>행간 <span class="v" id="cLhV">20px</span></label>
-          <input type="range" id="cLh" min="10" max="60" step="1" value="20"></div>
-        <div class="f"><label>내부 여백 <span class="v" id="cPadV">12px</span></label>
-          <input type="range" id="cPad" min="2" max="34" step="1" value="12"></div>
-        <div class="f"><label>풍선 간격 <span class="v" id="cGapV">12px</span></label>
-          <input type="range" id="cGap" min="0" max="40" step="1" value="12"></div>
-        <div class="f"><label>이름 간격 <span class="v" id="cNameV">4px</span></label>
-          <input type="range" id="cName" min="0" max="24" step="1" value="4"></div>
-        <div class="f"><label>풍선 너비 <span class="v" id="cWV">75%</span></label>
-          <input type="range" id="cW" min="40" max="100" step="1" value="75"></div>
-      </div>
+      <p class="hint">누르면 대화창·풍선·글자 색이 그 스타일로 한 번에 바뀝니다. 그다음 아래에서 하나씩 손봐도 돼요.</p></div>
+
+      <details class="sub"><summary>이름</summary>
+      <div class="subin">
+        <div class="two">
+          <div class="f"><label for="leftName">왼쪽 이름</label><input type="text" id="leftName" placeholder="비우면 숨김"></div>
+          <div class="f"><label for="rightName">오른쪽 이름</label><input type="text" id="rightName" placeholder="비우면 숨김"></div>
+        </div>
+        <div class="two">
+          <div class="f"><label for="extraName">추가 이름</label><input type="text" id="extraName" placeholder="비우면 숨김"></div>
+          <div class="f"><label for="extraSide">추가 방향</label>
+            <select id="extraSide"><option value="left">왼쪽</option><option value="right">오른쪽</option></select></div>
+        </div>
+      </div></details>
+
+      <details class="sub"><summary>색</summary>
+      <div class="subin">
+        <div class="f"><label>대화창 배경</label>
+          <input type="color" id="chatBg" value="#b2c7da"></div>
+        <div class="two">
+          <div class="sw"><input type="color" id="leftBg" value="#f2f3f5"><span>왼쪽 풍선</span></div>
+          <div class="sw"><input type="color" id="leftFg" value="#1a1a1a"><span>왼쪽 글자</span></div>
+        </div>
+        <div class="two" style="margin-top:8px">
+          <div class="sw"><input type="color" id="rightBg" value="#fdeaf1"><span>오른쪽 풍선</span></div>
+          <div class="sw"><input type="color" id="rightFg" value="#1a1a1a"><span>오른쪽 글자</span></div>
+        </div>
+        <div class="two" style="margin-top:8px">
+          <div class="sw"><input type="color" id="extraBg" value="#eef1f6"><span>추가 풍선</span></div>
+          <div class="sw"><input type="color" id="extraFg" value="#1a1a1a"><span>추가 글자</span></div>
+        </div>
+      </div></details>
+
+      <details class="sub"><summary>간격</summary>
+      <div class="subin">
+        <div class="two">
+          <div class="f"><label>글자 크기 <span class="v" id="cSizeV">15px</span></label>
+            <input type="range" id="cSize" min="8" max="40" step="1" value="15"></div>
+          <div class="f"><label>행간 <span class="v" id="cLhV">20px</span></label>
+            <input type="range" id="cLh" min="10" max="60" step="1" value="20"></div>
+          <div class="f"><label>내부 여백 <span class="v" id="cPadV">12px</span></label>
+            <input type="range" id="cPad" min="2" max="34" step="1" value="12"></div>
+          <div class="f"><label>풍선 간격 <span class="v" id="cGapV">12px</span></label>
+            <input type="range" id="cGap" min="0" max="40" step="1" value="12"></div>
+          <div class="f"><label>이름 간격 <span class="v" id="cNameV">4px</span></label>
+            <input type="range" id="cName" min="0" max="24" step="1" value="4"></div>
+          <div class="f"><label>풍선 너비 <span class="v" id="cWV">75%</span></label>
+            <input type="range" id="cW" min="40" max="100" step="1" value="75"></div>
+        </div>
+      </div></details>
+
+      <details class="sub"><summary>날짜</summary>
+      <div class="subin">
+        <label class="chk"><input type="checkbox" id="chatDate"> 위에 날짜 넣기</label>
+        <div class="f"><div class="datebox">
+          <input type="number" id="chatY" placeholder=""><span>년</span>
+          <input type="number" id="chatM" placeholder=""><span>월</span>
+          <input type="number" id="chatD" placeholder=""><span>일</span>
+        </div></div>
+      </div></details>
     </div>
   </details>
 
@@ -473,6 +540,30 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
       <div class="f"><label>모서리 둥글기 <span class="v" id="radiusV">0px</span></label>
         <input type="range" id="radius" min="0" max="80" step="1" value="0"></div>
       </div></details>
+      <details class="sub"><summary>사이드 사진</summary>
+      <div class="subin">
+        <div class="f"><label for="sideFile">사진</label><input type="file" id="sideFile" accept="image/*"></div>
+        <div class="two">
+          <div class="f"><label for="sidePos">위치</label>
+            <select id="sidePos"><option value="left">왼쪽</option><option value="right">오른쪽</option><option value="top">위</option><option value="bottom">아래</option></select></div>
+        </div>
+        <div class="two">
+          <div class="f"><label>크기 <span class="v" id="sideWV">26%</span></label>
+            <input type="range" id="sideW" min="10" max="60" step="1" value="26"></div>
+          <div class="f"><label>확대 <span class="v" id="sideZoomV">100%</span></label>
+            <input type="range" id="sideZoom" min="100" max="300" step="2" value="100"></div>
+          <div class="f"><label>좌우 위치 <span class="v" id="sideXV">50%</span></label>
+            <input type="range" id="sideX" min="0" max="100" step="1" value="50"></div>
+          <div class="f"><label>상하 위치 <span class="v" id="sideYV">50%</span></label>
+            <input type="range" id="sideY" min="0" max="100" step="1" value="50"></div>
+          <div class="f"><label>사진 여백 <span class="v" id="sideInsetV">0px</span></label>
+            <input type="range" id="sideInset" min="0" max="90" step="2" value="0"></div>
+          <div class="f"><label>모서리 둥글기 <span class="v" id="sideRadV">0px</span></label>
+            <input type="range" id="sideRad" min="0" max="40" step="1" value="0"></div>
+        </div>
+        <div class="seg"><button id="sideClear">사진 빼기</button></div>
+        <p class="hint">사진이 캔버스 한쪽을 세로로 채우고 글은 나머지 폭에만 흐릅니다.</p>
+      </div></details>
     </div>
   </details>
 
@@ -503,6 +594,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
 </div>
 
 <div class="save">
+  <button class="menu-btn" id="menuBtn">메뉴</button>
   <button id="helpBtn">표기법</button>
   <button id="copyBtn">복사</button>
   <button id="oneBtn" class="primary">이미지 저장</button>
@@ -517,7 +609,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
     <p><code>|a 문장</code> 강조 A 막대 · <code>|b 문장</code> 강조 B 막대. 여러 줄을 연달아 붙이면 하나의 막대로 묶입니다.</p>
     <p><code>---</code> 구분선 · <code>===</code> 페이지 나눔</p>
     <p>글자 꾸밈은 태그로 들어갑니다 — <code>&lt;b&gt;</code> 굵게, <code>&lt;i&gt;</code> 기울임, <code>&lt;c&gt;</code> 보조색, <code>&lt;ha&gt;</code> 형광, <code>&lt;q&gt;</code> 따옴표 강조. 툴바 버튼을 쓰면 직접 칠 일은 없어요.</p>
-    <p>따옴표·괄호 자동 감지를 켜두면 “대사”와 (속마음)은 태그 없이도 알아서 색이 잡힙니다.</p>
+    <p>괄호 자동 감지를 켜두면 ( ) 로 감싼 부분은 괄호 기호가 빠지고 작은 글씨로 나옵니다.</p>
   </div>
   <button data-close>닫기</button>
 </div>
@@ -532,13 +624,18 @@ const page=$('page'),bgLayer=$('bgLayer'),overlay=$('overlay'),content=$('conten
       jpWrap=$('jpWrap'),titleBox=$('titleBox'),flow=$('flow'),footBox=$('footBox'),ed=$('text');
 const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 let ratio='auto',bgMode='solid',chatStyle='plain',align='left',brMode='keep-all',cols=1,weight='300';
-let bgImg=null,customFont=null,photos=[],zoom=1;
+let bgImg=null,sideImg=null,customFont=null,photos=[],zoom=1;
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const V=id=>+$(id).value||0;
+function fillRange(el){
+  const mn=+el.min||0, mx=+el.max||100, v=+el.value;
+  el.style.setProperty('--p', ((v-mn)/(mx-mn)*100)+'%');
+}
+function fillAllRanges(){ document.querySelectorAll('input[type=range]').forEach(fillRange); }
 const S=id=>$(id).value;
 
-const TAGMAP={b:'tb',i:'ti',c:'c2',q:'qb',d:'dl',ha:'hl hA',hb:'hl hB'};
-const CLS2TAG={tb:'b',ti:'i',c2:'c',qb:'q',dl:'d',hA:'ha',hB:'hb'};
+const TAGMAP={b:'tb',i:'ti',c:'c2',q:'qb',ha:'hl hA',hb:'hl hB'};
+const CLS2TAG={tb:'b',ti:'i',c2:'c',qb:'q',hA:'ha',hB:'hb'};
 const BLOCKMARK={mA:'|a ',mB:'|b ',mL:'> ',mL2:'>> ',mR:'< '};
 const MARKCLS={'|a':'mA','|b':'mB','>':'mL','>>':'mL2','<':'mR'};
 
@@ -568,10 +665,9 @@ function serialize(root){
 }
 const TXT=()=>serialize(ed);
 function inline(s){
-  if($('smQuote').checked) s=s.replace(/[“"]([^”"]{1,300})[”"]/g,(m,g)=>'<d>“'+g+'”</d>');
-  if($('smBracket').checked) s=s.replace(/\(([^)]{1,300})\)/g,(m,g)=>'<brk>('+g+')</brk>');
+  if($('smBracket').checked) s=s.replace(/\(([^)]{1,300})\)/g,(m,g)=>'<brk>'+g+'</brk>');
   s=esc(s);
-  s=s.replace(/&lt;(\/?)(b|i|c|q|d|ha|hb|brk)&gt;/gi,(m,sl,tag)=>{
+  s=s.replace(/&lt;(\/?)(b|i|c|q|ha|hb|brk)&gt;/gi,(m,sl,tag)=>{
     if(sl) return '</span>';
     tag=tag.toLowerCase();
     return '<span class="'+(tag==='brk'?'brk':TAGMAP[tag])+'">';
@@ -588,7 +684,15 @@ function parse(){
   const lines=TXT().replace(/\s+$/,'').split('\n'), pages=[];
   let buf='',para=[],chat=null,last=null,bar=[],barType=null,lastBlock=false;
   const flushPara=()=>{if(para.length){buf+='<p>'+para.join('\n')+'</p>';para=[];lastBlock=false;}};
-  const closeChat=()=>{if(chat!==null){buf+='<div class="chat">'+chat+'</div>';chat=null;last=null;lastBlock=true;}};
+  const closeChat=()=>{if(chat!==null){
+    const dparts=[];
+    if(S('chatY').trim()) dparts.push(S('chatY').trim()+'년');
+    if(S('chatM').trim()) dparts.push(S('chatM').trim()+'월');
+    if(S('chatD').trim()) dparts.push(S('chatD').trim()+'일');
+    const dt=($('chatDate').checked&&dparts.length)
+      ? '<div class="chatdate">'+esc(dparts.join(' '))+'</div>' : '';
+    const bar='';
+    buf+='<div class="chat">'+dt+chat+bar+'</div>';chat=null;last=null;lastBlock=true;}};
   const closeBar=()=>{if(bar.length){buf+='<div class="qbar q'+barType+'"><p>'+bar.join('\n')+'</p></div>';bar=[];barType=null;lastBlock=true;}};
   const flushPage=()=>{flushPara();closeChat();closeBar();pages.push(buf);buf='';};
 
@@ -624,13 +728,15 @@ function parse(){
       last=who; return;
     }
 
-    closeChat(); closeBar();
-    if(t==='---'){flushPara();buf+='<hr class="rule">';lastBlock=true;return;}
     if(!t){
-      if(para.length) flushPara();
-      else if(!lastBlock){ buf+='<p>&nbsp;</p>'; }
+      if(para.length){ flushPara(); return; }
+      if(chat!==null) return;            // 대화 묶음 안의 빈 줄은 무시
+      if(bar.length){ closeBar(); return; }  // 강조 묶음은 빈 줄에서 끊김
+      if(!lastBlock) buf+='<p>&nbsp;</p>';
       return;
     }
+    closeChat(); closeBar();
+    if(t==='---'){flushPara();buf+='<hr class="rule">';lastBlock=true;return;}
     para.push(inline(line));
   });
   flushPage();
@@ -641,8 +747,10 @@ function render(){
   const t=S('title').trim(),s=S('subtitle').trim();
   titleBox.innerHTML=(t?`<p class="h1">${inline(t)}</p>`:'')+(s?`<p class="h2">${inline(s)}</p>`:'');
   titleBox.style.display=(t||s)?'':'none';
-  const f=S('foot').trim();
-  footBox.innerHTML=f?inline(f):''; footBox.style.display=f?'':'none';
+  const f=S('foot').trim(), au=S('footAuthor').trim();
+  let fh = f?inline(f):'';
+  if(au) fh += (fh?'<span class="fsep">'+esc(S('footSep'))+'</span>':'')+inline(au);
+  footBox.innerHTML=fh; footBox.style.display=fh?'':'none';
   const pages=parse();
   $('edPh').style.display=TXT().trim()?'none':'';
   flow.innerHTML=TXT().trim()
@@ -677,25 +785,13 @@ function apply(){
   flow.querySelectorAll('img.ph').forEach(i=>i.style.width=V('phW')+'%');
 
   document.querySelectorAll('.c2').forEach(e=>e.style.color=S('c2'));
+  document.querySelectorAll('#flow .brk').forEach(e=>e.style.fontSize=V('brkSize')+'%');
   document.querySelectorAll('#flow .nmSA').forEach(e=>e.style.color=S('nmColorA'));
   document.querySelectorAll('#flow .nmSB').forEach(e=>e.style.color=S('nmColorB'));
   flow.style.setProperty('--nmw',V('nmWidth')+'px');
   ed.classList.toggle('bar',$('nmBar').checked);
   ed.style.setProperty('--nmcA',S('nmColorA'));
   ed.style.setProperty('--nmcB',S('nmColorB'));
-  const dst=S('dStyle'),dcol=S('dColor');
-  document.querySelectorAll('.dl').forEach(e=>{
-    e.removeAttribute('data-bgpaint');
-    ['color','fontWeight','background','padding','borderRadius','textDecoration','textDecorationColor','textUnderlineOffset','fontSize']
-      .forEach(k=>e.style[k]='');
-    if(dst==='color') e.style.color=dcol;
-    else if(dst==='bold') e.style.fontWeight='700';
-    else if(dst==='boldcolor'){ e.style.fontWeight='700'; e.style.color=dcol; }
-    else if(dst==='capsule'){ e.style.background=dcol; e.style.padding='1px 7px'; e.style.borderRadius='999px'; e.setAttribute('data-bgpaint',''); }
-    else if(dst==='under'){ e.style.textDecoration='underline'; e.style.textDecorationColor=dcol; e.style.textUnderlineOffset='3px'; }
-    else if(dst==='wave'){ e.style.textDecoration='underline wavy'; e.style.textDecorationColor=dcol; e.style.textUnderlineOffset='3px'; }
-    else if(dst==='big'){ e.style.fontSize='1.06em'; e.style.color=dcol; }
-  });
   document.querySelectorAll('.hA').forEach(e=>e.style.background=S('haC'));
   document.querySelectorAll('.hB').forEach(e=>e.style.background=S('hbC'));
   document.querySelectorAll('.qA,.mA').forEach(e=>e.style.borderLeftColor=S('uaC'));
@@ -715,7 +811,7 @@ function apply(){
     b.style.background=S(key+'Bg');
     b.style.color=S(key+'Fg');
     b.style.maxWidth=V('cW')+'%';
-    b.style.padding=Math.round(V('cPad')*.7)+'px '+V('cPad')+'px';
+    b.style.padding=Math.round(V('cPad')*.55)+'px '+V('cPad')+'px '+Math.round(V('cPad')*.8)+'px';
   });
 
   const W=V('width'); page.style.width=W+'px';
@@ -724,7 +820,41 @@ function apply(){
   page.style.height=H?H+'px':'auto';
   content.style.justifyContent=H?S('vAlign'):'flex-start';
   $('vAlignF').style.display=H?'':'none';
-  content.style.padding=V('pv')+'px '+V('ph')+'px';
+  const sEl=$('sideImg');
+  if(sideImg){
+    const sw=V('sideW'), pos=S('sidePos'), ins=V('sideInset'), W=V('width');
+    const pv=V('pv'), ph=V('ph');
+    sEl.style.display='block';
+    sEl.style.backgroundImage='url('+sideImg+')';
+    sEl.style.backgroundPosition = V('sideX')+'% '+V('sideY')+'%';
+    sEl.style.borderRadius=V('sideRad')+'px';
+    const zoom2=V('sideZoom');
+    if(pos==='left'||pos==='right'){
+      sEl.style.backgroundSize = 'auto '+zoom2+'%';
+      sEl.style.top=ins+'px'; sEl.style.bottom=ins+'px'; sEl.style.height='auto';
+      sEl.style.width=sw+'%';
+      sEl.style.left = pos==='left'?ins+'px':'auto';
+      sEl.style.right= pos==='right'?ins+'px':'auto';
+      const band='calc('+sw+'% + '+(ph+ins)+'px)';
+      content.style.padding = pos==='left'
+        ? pv+'px '+ph+'px '+pv+'px '+band
+        : pv+'px '+band+' '+pv+'px '+ph+'px';
+    }else{
+      sEl.style.backgroundSize = zoom2+'% auto';
+      const h=Math.max(20,Math.round(W*sw/100));
+      sEl.style.left=ins+'px'; sEl.style.right=ins+'px'; sEl.style.width='auto';
+      sEl.style.height=h+'px';
+      sEl.style.top = pos==='top'?ins+'px':'auto';
+      sEl.style.bottom= pos==='bottom'?ins+'px':'auto';
+      const band=(h+ins+pv)+'px';
+      content.style.padding = pos==='top'
+        ? band+' '+ph+'px '+pv+'px '+ph+'px'
+        : pv+'px '+ph+'px '+band+' '+ph+'px';
+    }
+  }else{
+    sEl.style.display='none';
+    content.style.padding=V('pv')+'px '+V('ph')+'px';
+  }
   page.style.borderRadius=V('radius')+'px';
   page.style.border=V('borderW')?V('borderW')+'px solid '+S('borderC'):'none';
 
@@ -747,8 +877,10 @@ function apply(){
   put('cGapV',V('cGap')+'px'); put('cNameV',V('cName')+'px'); put('cWV',V('cW')+'%');
   put('widthV',W+'px'); put('phV',V('ph')+'px'); put('pvV',V('pv')+'px');
   put('bgAngleV',V('bgAngle')+'°'); put('ovAlphaV',V('ovAlpha')+'%'); put('bgBlurV',V('bgBlur')+'px');
-  put('borderWV',V('borderW')+'px'); put('radiusV',V('radius')+'px');
+  put('borderWV',V('borderW')+'px'); put('radiusV',V('radius')+'px'); put('brkSizeV',V('brkSize')+'%'); put('sideWV',V('sideW')+'%'); put('sideZoomV',V('sideZoom')+'%'); put('sideXV',V('sideX')+'%'); put('sideYV',V('sideY')+'%'); put('sideInsetV',V('sideInset')+'px'); put('sideRadV',V('sideRad')+'px');
 
+  fillAllRanges();
+  if(typeof syncFontBtn==='function') syncFontBtn();
   if(typeof paintHL==='function') paintHL();
   $('warn').style.display=(ratio!=='auto'&&jpWrap.scrollHeight>content.clientHeight+2)?'block':'none';
   applyZoom();
@@ -760,13 +892,13 @@ function applyZoom(){
   $('zoom').style.width=page.offsetWidth*zoom+'px';
   $('zoom').style.height=page.offsetHeight*zoom+'px';
   $('zPct').textContent=Math.round(zoom*100)+'%';
-  $('zoomR').value=Math.round(zoom*100);
+  $('zoomR').value=Math.round(zoom*100); fillRange($('zoomR'));
 }
 const setZoom=z=>{zoom=Math.min(2,Math.max(.15,z));applyZoom();};
 const fitZoom=()=>setZoom(Math.min(1,($('stage').clientWidth-34)/page.offsetWidth));
 $('zIn').onclick=()=>setZoom(zoom+.1);
 $('zOut').onclick=()=>setZoom(zoom-.1);
-$('zoomR').oninput=e=>setZoom(e.target.value/100);
+$('zoomR').oninput=e=>{fillRange(e.target);setZoom(e.target.value/100);};
 $('zFit').onclick=fitZoom;
 window.addEventListener('resize',fitZoom);
 let pd=0,pz=1;
@@ -782,8 +914,9 @@ $('stage').addEventListener('touchmove',e=>{
 $('stage').addEventListener('touchend',()=>{pd=0;});
 
 /* 입력 */
-const RE=['text','title','subtitle','foot','leftName','rightName','extraName','extraSide','smQuote','smBracket','nmBar'];
+const RE=['text','title','subtitle','foot','footAuthor','footSep','leftName','rightName','extraName','extraSide','chatDate','chatY','chatM','chatD','smBracket','nmBar'];
 $('rail').addEventListener('input',e=>{
+  if(e.target.type==='range') fillRange(e.target);
   if(e.target.id==='cfgBox'||e.target.id==='presetName') return;
   RE.includes(e.target.id)?render():apply();
 });
@@ -907,6 +1040,20 @@ function cutTail(block,node,off){
   block.parentNode.insertBefore(nb,block.nextSibling);
 }
 function markBlocks(cls,name,slotCls){
+  const picked=[...ed.querySelectorAll('.picked')];
+  if(picked.length){
+    snap();
+    const nm=(typeof name!=='undefined')?name:null;
+    const sc=(typeof slotCls!=='undefined')?slotCls:null;
+    picked.forEach(b=>{
+      b.classList.remove('mA','mB','mL','mR','mL2','mN','sA','sB','picked');
+      if(b.dataset) delete b.dataset.name;
+      if(cls) b.classList.add(cls);
+      if(sc) b.classList.add(sc);
+      if(nm) b.dataset.name=nm;
+    });
+    render(); ed.focus(); return;
+  }
   const r=activeRange();
   if(!r){ ed.focus(); return; }
   snap();
@@ -1010,7 +1157,16 @@ $('toolbar').addEventListener('click',e=>{
   if(act==='nameB') return applyName('B');
   if(act==='undo') return undo();
   if(act==='redo') return redo();
-  if(act==='clear'){ if(confirm('본문을 모두 지울까요?')){ snap(); ed.innerHTML='<div><br></div>'; render(); } }
+  if(act==='clear'){
+    if(b.dataset.armed){
+      clearTimeout(+b.dataset.armed); delete b.dataset.armed;
+      b.textContent='비우기';
+      snap(); ed.innerHTML='<div><br></div>'; render();
+    }else{
+      b.textContent='정말 비울까요?';
+      b.dataset.armed=setTimeout(()=>{delete b.dataset.armed;b.textContent='비우기';},3000);
+    }
+  }
   else if(act==='quote'){
     const sl=window.getSelection();
     const t=(sl&&!sl.isCollapsed&&ed.contains(sl.anchorNode))?sl.toString():'대사';
@@ -1024,11 +1180,14 @@ function markName(name,slot){
 }
 function applyName(slot){
   const f=$('nmName'+slot);
-  let nm=f.value.trim();
+  const nm=f.value.trim();
   if(!nm){
-    const t=prompt('이름 '+slot+' 를 입력하세요','');
-    if(t===null||!t.trim()) return;
-    nm=t.trim(); f.value=nm;
+    // 이름이 비어 있으면 입력칸을 열어준다 (확인창은 일부 브라우저에서 막힘)
+    let el=f.closest('details');
+    while(el){ el.open=true; el=el.parentElement&&el.parentElement.closest('details'); }
+    document.body.classList.add('menu-open');
+    setTimeout(()=>{f.scrollIntoView({block:'center'});f.focus();},60);
+    return;
   }
   markName(nm,slot);
 }
@@ -1040,6 +1199,11 @@ $('photoFile').addEventListener('change',e=>{
   r.onload=ev=>{photos.push(ev.target.result);insertText('\n[사진'+photos.length+']\n');};
   r.readAsDataURL(f); e.target.value='';
 });
+$('sideFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=ev=>{sideImg=ev.target.result;apply();}; r.readAsDataURL(f);
+});
+$('sideClear').onclick=()=>{sideImg=null;$('sideFile').value='';apply();};
 $('bgFile').addEventListener('change',e=>{
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader(); r.onload=ev=>{bgImg=ev.target.result;apply();}; r.readAsDataURL(f);
@@ -1119,10 +1283,9 @@ function paintHL(){
   layer.innerHTML='';
   const base=content.getBoundingClientRect();
   const z=zoom||1;
-  flow.querySelectorAll('.hl,[data-bgpaint]').forEach(el=>{
-    const cap=el.hasAttribute('data-bgpaint');
-    const col=cap?S('dColor'):(el.classList.contains('hA')?S('haC'):S('hbC'));
-    const padX=cap?7:2, padY=cap?1:0, rad=cap?999:2;
+  flow.querySelectorAll('.hl').forEach(el=>{
+    const col=el.classList.contains('hA')?S('haC'):S('hbC');
+    const padX=2, padY=0, rad=2;
     el.style.background='transparent';
     const r=document.createRange(); r.selectNodeContents(el);
     [...r.getClientRects()].forEach(rc=>{
@@ -1191,6 +1354,54 @@ $('copyBtn').onclick=async()=>{
   }catch(err){console.error(err);b.textContent='복사 불가';}
   finally{setTimeout(()=>{b.textContent='복사';b.disabled=false;},1600);}
 };
+let pickMode=false;
+$('pickBtn').onclick=()=>{
+  pickMode=!pickMode;
+  if(pickMode) ensureBlocks();
+  $('pickBtn').setAttribute('aria-pressed',pickMode);
+  ed.classList.toggle('picking',pickMode);
+  ed.contentEditable = pickMode ? 'false' : 'true';
+  if(!pickMode) ed.querySelectorAll('.picked').forEach(b=>b.classList.remove('picked'));
+};
+ed.addEventListener('click',e=>{
+  if(!pickMode) return;
+  const n=e.target.nodeType===3?e.target.parentNode:e.target;
+  const b=topBlock(n);
+  if(b) b.classList.toggle('picked');
+});
+// 글꼴 목록을 각 글꼴로 보여주기
+function buildFontList(){
+  const sel=$('font'), list=$('fontList');
+  list.innerHTML='';
+  [...sel.options].forEach(o=>{
+    const b=document.createElement('button');
+    b.type='button'; b.textContent=o.textContent; b.dataset.v=o.value;
+    if(o.value!=='__custom__') b.style.fontFamily=o.value;
+    list.appendChild(b);
+  });
+}
+function syncFontBtn(){
+  const sel=$('font'), btn=$('fontBtn');
+  const o=sel.options[sel.selectedIndex];
+  if(!o) return;
+  btn.textContent=o.textContent;
+  btn.style.fontFamily = sel.value==='__custom__'
+    ? (customFont?"'"+customFont+"',sans-serif":'inherit') : sel.value;
+  [...$('fontList').children].forEach(b=>b.setAttribute('aria-selected',b.dataset.v===sel.value));
+}
+$('fontBtn').onclick=e=>{e.stopPropagation();$('fontList').classList.toggle('on');};
+$('fontList').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  $('font').value=b.dataset.v;
+  $('fontList').classList.remove('on');
+  $('font').dispatchEvent(new Event('input',{bubbles:true}));
+  syncFontBtn();
+});
+document.addEventListener('click',()=>$('fontList').classList.remove('on'));
+buildFontList();
+
+$('menuBtn').onclick=()=>{document.body.classList.toggle('menu-open');setTimeout(fitZoom,300);};
+$('backdrop').onclick=()=>document.body.classList.remove('menu-open');
 $('helpBtn').onclick=()=>$('helpModal').classList.add('on');
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('.modal').classList.remove('on'));
 
