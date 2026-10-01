@@ -50,7 +50,7 @@ body.menu-open .stage{max-height:calc(100dvh - 52dvh - 74px);}
 #bgLayer,#overlay{position:absolute;inset:0;}
 #bgLayer{background-size:cover;background-position:center;}
 #sideImg{position:absolute;top:0;bottom:0;display:none;overflow:hidden;}
-#sideImgEl{position:absolute;display:block;object-fit:cover;}
+#sideImgEl{position:absolute;display:block;max-width:none;}
 #content{position:relative;height:100%;display:flex;flex-direction:column;padding:70px 50px;}
 #jpWrap{width:calc(100% / var(--jp));transform:scaleX(var(--jp));transform-origin:left top;position:relative;z-index:1;}
 #hlLayer{position:absolute;inset:0;z-index:0;pointer-events:none;}
@@ -625,7 +625,7 @@ const page=$('page'),bgLayer=$('bgLayer'),overlay=$('overlay'),content=$('conten
       jpWrap=$('jpWrap'),titleBox=$('titleBox'),flow=$('flow'),footBox=$('footBox'),ed=$('text');
 const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 let ratio='auto',bgMode='solid',chatStyle='plain',align='left',brMode='keep-all',cols=1,weight='300';
-let bgImg=null,sideImg=null,customFont=null,photos=[],zoom=1;
+let bgImg=null,sideImg=null,sideNW=0,sideNH=0,customFont=null,photos=[],zoom=1;
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const V=id=>+$(id).value||0;
 function fillRange(el){
@@ -828,10 +828,6 @@ function apply(){
     sEl.style.display='block';
     sEl.style.borderRadius=V('sideRad')+'px';
     if(sImg.getAttribute('src')!==sideImg) sImg.src=sideImg;
-    sImg.style.width=Z+'%'; sImg.style.height=Z+'%';
-    sImg.style.objectPosition=X+'% '+Y+'%';
-    sImg.style.left=((100-Z)*X/100)+'%';
-    sImg.style.top=((100-Z)*Y/100)+'%';
     if(pos==='left'||pos==='right'){
       sEl.style.top=ins+'px'; sEl.style.bottom=ins+'px'; sEl.style.height='auto';
       sEl.style.width=sw+'%';
@@ -851,6 +847,18 @@ function apply(){
       content.style.padding = pos==='top'
         ? band+' '+ph+'px '+pv+'px '+ph+'px'
         : pv+'px '+ph+'px '+band+' '+ph+'px';
+    }
+    // 저장 라이브러리가 object-fit을 모르므로 비율을 직접 계산해 크기를 지정한다
+    if(sideNW&&sideNH){
+      const z=zoom||1, r=sEl.getBoundingClientRect();
+      const cw=r.width/z, ch=r.height/z;
+      if(cw>0&&ch>0){
+        const k=Math.max(cw/sideNW,ch/sideNH)*(Z/100);
+        const iw=sideNW*k, ih=sideNH*k;
+        sImg.style.width=iw+'px'; sImg.style.height=ih+'px';
+        sImg.style.left=((cw-iw)*X/100)+'px';
+        sImg.style.top=((ch-ih)*Y/100)+'px';
+      }
     }
   }else{
     sEl.style.display='none';
@@ -1203,10 +1211,15 @@ $('photoFile').addEventListener('change',e=>{
 $('sideFile').addEventListener('change',e=>{
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
-  r.onload=ev=>{sideImg=ev.target.result;apply();};
+  r.onload=ev=>{
+    sideImg=ev.target.result;
+    const im=new Image();
+    im.onload=()=>{sideNW=im.naturalWidth;sideNH=im.naturalHeight;apply();};
+    im.src=sideImg;
+  };
   r.readAsDataURL(f);
 });
-$('sideClear').onclick=()=>{sideImg=null;$('sideFile').value='';apply();};
+$('sideClear').onclick=()=>{sideImg=null;sideNW=sideNH=0;$('sideFile').value='';apply();};
 $('bgFile').addEventListener('change',e=>{
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader(); r.onload=ev=>{bgImg=ev.target.result;apply();}; r.readAsDataURL(f);
