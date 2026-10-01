@@ -49,7 +49,8 @@ body.menu-open .stage{max-height:calc(100dvh - 52dvh - 74px);}
   box-shadow:0 4px 20px rgba(28,39,51,.13),0 0 0 1px rgba(28,39,51,.06);}
 #bgLayer,#overlay{position:absolute;inset:0;}
 #bgLayer{background-size:cover;background-position:center;}
-#sideImg{position:absolute;top:0;bottom:0;display:none;background-position:center;background-repeat:no-repeat;}
+#sideImg{position:absolute;top:0;bottom:0;display:none;overflow:hidden;}
+#sideImgEl{position:absolute;display:block;object-fit:cover;}
 #content{position:relative;height:100%;display:flex;flex-direction:column;padding:70px 50px;}
 #jpWrap{width:calc(100% / var(--jp));transform:scaleX(var(--jp));transform-origin:left top;position:relative;z-index:1;}
 #hlLayer{position:absolute;inset:0;z-index:0;pointer-events:none;}
@@ -231,7 +232,7 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
   <span class="warn preview-only" id="warn">내용이 캔버스 밖으로 넘쳤어요</span>
   <div class="stage-inner"><div id="zoom">
     <div id="page">
-      <div id="bgLayer"></div><div id="overlay"></div><div id="sideImg"></div>
+      <div id="bgLayer"></div><div id="overlay"></div><div id="sideImg"><img id="sideImgEl" alt=""></div>
       <div id="content"><div id="hlLayer"></div><div id="jpWrap">
         <div id="titleBox"></div><div id="flow"></div><div id="footBox"></div>
       </div></div>
@@ -820,17 +821,18 @@ function apply(){
   page.style.height=H?H+'px':'auto';
   content.style.justifyContent=H?S('vAlign'):'flex-start';
   $('vAlignF').style.display=H?'':'none';
-  const sEl=$('sideImg');
+  const sEl=$('sideImg'), sImg=$('sideImgEl');
   if(sideImg){
     const sw=V('sideW'), pos=S('sidePos'), ins=V('sideInset'), W=V('width');
-    const pv=V('pv'), ph=V('ph');
+    const pv=V('pv'), ph=V('ph'), Z=V('sideZoom'), X=V('sideX'), Y=V('sideY');
     sEl.style.display='block';
-    sEl.style.backgroundImage='url('+sideImg+')';
-    sEl.style.backgroundPosition = V('sideX')+'% '+V('sideY')+'%';
     sEl.style.borderRadius=V('sideRad')+'px';
-    const zoom2=V('sideZoom');
+    if(sImg.getAttribute('src')!==sideImg) sImg.src=sideImg;
+    sImg.style.width=Z+'%'; sImg.style.height=Z+'%';
+    sImg.style.objectPosition=X+'% '+Y+'%';
+    sImg.style.left=((100-Z)*X/100)+'%';
+    sImg.style.top=((100-Z)*Y/100)+'%';
     if(pos==='left'||pos==='right'){
-      sEl.style.backgroundSize = 'auto '+zoom2+'%';
       sEl.style.top=ins+'px'; sEl.style.bottom=ins+'px'; sEl.style.height='auto';
       sEl.style.width=sw+'%';
       sEl.style.left = pos==='left'?ins+'px':'auto';
@@ -840,7 +842,6 @@ function apply(){
         ? pv+'px '+ph+'px '+pv+'px '+band
         : pv+'px '+band+' '+pv+'px '+ph+'px';
     }else{
-      sEl.style.backgroundSize = zoom2+'% auto';
       const h=Math.max(20,Math.round(W*sw/100));
       sEl.style.left=ins+'px'; sEl.style.right=ins+'px'; sEl.style.width='auto';
       sEl.style.height=h+'px';
@@ -1201,7 +1202,9 @@ $('photoFile').addEventListener('change',e=>{
 });
 $('sideFile').addEventListener('change',e=>{
   const f=e.target.files[0]; if(!f) return;
-  const r=new FileReader(); r.onload=ev=>{sideImg=ev.target.result;apply();}; r.readAsDataURL(f);
+  const r=new FileReader();
+  r.onload=ev=>{sideImg=ev.target.result;apply();};
+  r.readAsDataURL(f);
 });
 $('sideClear').onclick=()=>{sideImg=null;$('sideFile').value='';apply();};
 $('bgFile').addEventListener('change',e=>{
