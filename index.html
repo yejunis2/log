@@ -892,7 +892,16 @@ function apply(){
   fillAllRanges();
   if(typeof syncFontBtn==='function') syncFontBtn();
   if(typeof paintHL==='function') paintHL();
-  $('warn').style.display=(ratio!=='auto'&&jpWrap.scrollHeight>content.clientHeight+2)?'block':'none';
+  // 비율 고정 + 세로 가운데일 때 내용이 넘치면 위아래로 삐져나가 사이드 사진과 겹치므로
+  // 그런 경우에는 위 정렬로 되돌린다
+  let over=false;
+  if(H){
+    const cs=getComputedStyle(content);
+    const avail=content.clientHeight-parseFloat(cs.paddingTop||0)-parseFloat(cs.paddingBottom||0);
+    over = jpWrap.scrollHeight > avail+1;
+    if(over) content.style.justifyContent='flex-start';
+  }
+  $('warn').style.display=over?'block':'none';
   applyZoom();
 }
 
