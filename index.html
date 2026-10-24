@@ -562,6 +562,8 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
             <input type="range" id="sideInset" min="0" max="90" step="2" value="0"></div>
           <div class="f"><label>모서리 둥글기 <span class="v" id="sideRadV">0px</span></label>
             <input type="range" id="sideRad" min="0" max="40" step="1" value="0"></div>
+          <div class="f"><label>글과의 간격 <span class="v" id="sideGapV">28px</span></label>
+            <input type="range" id="sideGap" min="0" max="150" step="2" value="28"></div>
         </div>
         <div class="seg"><button id="sideClear">사진 빼기</button></div>
         <p class="hint">사진이 캔버스 한쪽을 세로로 채우고 글은 나머지 폭에만 흐릅니다.</p>
@@ -607,11 +609,14 @@ code{background:var(--pale);color:var(--deep);padding:1px 5px;border-radius:5px;
 <div class="modal" id="helpModal">
   <div class="box">
     <h4>표기법</h4>
-    <p><code>&gt; 대사</code> 왼쪽 말풍선 · <code>&lt; 대사</code> 오른쪽 말풍선 (꺾쇠 뒤에 띄어쓰기 한 칸)</p>
-    <p><code>|a 문장</code> 강조 A 막대 · <code>|b 문장</code> 강조 B 막대. 여러 줄을 연달아 붙이면 하나의 막대로 묶입니다.</p>
-    <p><code>---</code> 구분선 · <code>===</code> 페이지 나눔</p>
-    <p>글자 꾸밈은 태그로 들어갑니다 — <code>&lt;b&gt;</code> 굵게, <code>&lt;i&gt;</code> 기울임, <code>&lt;c&gt;</code> 보조색, <code>&lt;ha&gt;</code> 형광, <code>&lt;q&gt;</code> 따옴표 강조. 툴바 버튼을 쓰면 직접 칠 일은 없어요.</p>
-    <p>괄호 자동 감지를 켜두면 ( ) 로 감싼 부분은 괄호 기호가 빠지고 작은 글씨로 나옵니다.</p>
+    <p><b>글자 꾸밈</b> — 글을 드래그하고 굵게·기울임·보조색·형광 A/B·따옴표 강조를 누르면 됩니다. 입력칸에도 그대로 보여요.</p>
+    <p><b>줄 단위 표시</b> — 커서를 둔 줄(또는 드래그한 범위)에 강조 A·B 막대나 말풍선이 걸립니다. 떼려면 ‘선택한 문장 해제’.</p>
+    <p><b>말풍선</b> — 왼쪽 · 오른쪽 · 추가 세 사람까지. 추가 말풍선이 어느 쪽에 설지는 말풍선 → 이름 칸에서 정합니다. 대사 사이의 빈 줄은 무시되고 한 대화창으로 이어져요.</p>
+    <p><b>이름표</b> — 대사 줄을 잡고 ‘이름 A·B’를 누르면 줄 앞에 이름이 붙습니다. 이름과 색은 글자 → 이름표 칸에서 정해요.</p>
+    <p><b>문장 선택</b> — 켜고 여러 줄을 톡톡 고른 뒤 버튼을 누르면 떨어져 있는 줄에도 한 번에 걸립니다.</p>
+    <p><b>구분선 · 페이지 나눔</b> — 페이지 나눔을 넣고 ‘분할 저장’을 누르면 그 지점마다 한 장씩 만들어집니다.</p>
+    <p><b>괄호</b> — 색상 칸에서 괄호 자동 감지를 켜면 ( ) 로 감싼 부분은 괄호 기호가 빠지고 작은 글씨로 나옵니다.</p>
+    <p>되돌리기는 ↺, 컴퓨터에서는 Ctrl+Z(맥 Cmd+Z)도 됩니다.</p>
   </div>
   <button data-close>닫기</button>
 </div>
@@ -825,7 +830,7 @@ function apply(){
   const sEl=$('sideImg'), sImg=$('sideImgEl');
   if(sideImg){
     const sw=V('sideW'), pos=S('sidePos'), ins=V('sideInset'), W=V('width');
-    const pv=V('pv'), ph=V('ph'), Z=V('sideZoom'), X=V('sideX'), Y=V('sideY');
+    const pv=V('pv'), ph=V('ph'), gap=V('sideGap'), Z=V('sideZoom'), X=V('sideX'), Y=V('sideY');
     sEl.style.display='block';
     sEl.style.borderRadius=V('sideRad')+'px';
     if(sImg.getAttribute('src')!==sideImg) sImg.src=sideImg;
@@ -834,7 +839,7 @@ function apply(){
       sEl.style.width=sw+'%';
       sEl.style.left = pos==='left'?ins+'px':'auto';
       sEl.style.right= pos==='right'?ins+'px':'auto';
-      const band='calc('+sw+'% + '+(ph+ins)+'px)';
+      const band='calc('+sw+'% + '+(gap+ins)+'px)';
       content.style.padding = pos==='left'
         ? pv+'px '+ph+'px '+pv+'px '+band
         : pv+'px '+band+' '+pv+'px '+ph+'px';
@@ -844,15 +849,14 @@ function apply(){
       sEl.style.height=h+'px';
       sEl.style.top = pos==='top'?ins+'px':'auto';
       sEl.style.bottom= pos==='bottom'?ins+'px':'auto';
-      const band=(h+ins+pv)+'px';
+      const band=(h+ins+gap)+'px';
       content.style.padding = pos==='top'
         ? band+' '+ph+'px '+pv+'px '+ph+'px'
         : pv+'px '+ph+'px '+band+' '+ph+'px';
     }
     // 저장 라이브러리가 object-fit을 모르므로 비율을 직접 계산해 크기를 지정한다
     if(sideNW&&sideNH){
-      const z=zoom||1, r=sEl.getBoundingClientRect();
-      const cw=r.width/z, ch=r.height/z;
+      const cw=sEl.offsetWidth, ch=sEl.offsetHeight;
       if(cw>0&&ch>0){
         const k=Math.max(cw/sideNW,ch/sideNH)*(Z/100);
         const iw=sideNW*k, ih=sideNH*k;
@@ -887,20 +891,20 @@ function apply(){
   put('cGapV',V('cGap')+'px'); put('cNameV',V('cName')+'px'); put('cWV',V('cW')+'%');
   put('widthV',W+'px'); put('phV',V('ph')+'px'); put('pvV',V('pv')+'px');
   put('bgAngleV',V('bgAngle')+'°'); put('ovAlphaV',V('ovAlpha')+'%'); put('bgBlurV',V('bgBlur')+'px');
-  put('borderWV',V('borderW')+'px'); put('radiusV',V('radius')+'px'); put('brkSizeV',V('brkSize')+'%'); put('sideWV',V('sideW')+'%'); put('sideZoomV',V('sideZoom')+'%'); put('sideXV',V('sideX')+'%'); put('sideYV',V('sideY')+'%'); put('sideInsetV',V('sideInset')+'px'); put('sideRadV',V('sideRad')+'px');
+  put('borderWV',V('borderW')+'px'); put('radiusV',V('radius')+'px'); put('brkSizeV',V('brkSize')+'%'); put('sideWV',V('sideW')+'%'); put('sideZoomV',V('sideZoom')+'%'); put('sideXV',V('sideX')+'%'); put('sideYV',V('sideY')+'%'); put('sideInsetV',V('sideInset')+'px'); put('sideRadV',V('sideRad')+'px'); put('sideGapV',V('sideGap')+'px');
 
   fillAllRanges();
   if(typeof syncFontBtn==='function') syncFontBtn();
-  if(typeof paintHL==='function') paintHL();
   // 비율 고정 + 세로 가운데일 때 내용이 넘치면 위아래로 삐져나가 사이드 사진과 겹치므로
-  // 그런 경우에는 위 정렬로 되돌린다
+  // 그런 경우에는 위 정렬로 되돌린다. 글 위치가 확정된 뒤에 형광을 그려야 어긋나지 않는다
   let over=false;
   if(H){
     const cs=getComputedStyle(content);
     const avail=content.clientHeight-parseFloat(cs.paddingTop||0)-parseFloat(cs.paddingBottom||0);
     over = jpWrap.scrollHeight > avail+1;
-    if(over) content.style.justifyContent='flex-start';
+    content.style.justifyContent = over ? 'flex-start' : S('vAlign');
   }
+  if(typeof paintHL==='function') paintHL();
   $('warn').style.display=over?'block':'none';
   applyZoom();
 }
@@ -1242,7 +1246,7 @@ $('fontFile').addEventListener('change',async e=>{
 });
 
 /* ===== 설정 · 프리셋 ===== */
-const SKIP=['cfgBox','presetName','text','title','subtitle','foot','filename'];
+const SKIP=['cfgBox','presetName','text','title','subtitle','foot','footAuthor','filename','chatY','chatM','chatD'];
 const fields=()=>[...document.querySelectorAll('#rail input,#rail select,#rail textarea')]
   .filter(el=>el.id&&el.type!=='file'&&!SKIP.includes(el.id));
 function collect(){
@@ -1308,7 +1312,8 @@ function paintHL(){
   const layer=$('hlLayer'); if(!layer) return;
   layer.innerHTML='';
   const base=content.getBoundingClientRect();
-  const z=zoom||1;
+  // 캡처 중에는 zoom 변수와 실제 배율이 다를 수 있으므로 직접 잰다
+  const z=(page.getBoundingClientRect().width/(page.offsetWidth||1))||1;
   flow.querySelectorAll('.hl').forEach(el=>{
     const col=el.classList.contains('hA')?S('haC'):S('hbC');
     const padX=2, padY=0, rad=2;
@@ -1328,15 +1333,16 @@ function paintHL(){
 async function shoot(){
   await document.fonts.ready;
   flow.normalize();
-  paintHL();
-  document.body.classList.add('capturing');
   const z=zoom; $('zoom').style.transform='scale(1)';
+  document.body.classList.add('capturing');
+  paintHL();                      // 캡처 상태의 실제 줄 위치로 그린다
   try{
     return await html2canvas(page,{scale:+S('scale'),
       backgroundColor:bgMode==='none'?null:'#ffffff',useCORS:true,logging:false});
   } finally{
     document.body.classList.remove('capturing');
     $('zoom').style.transform=`scale(${z})`;
+    paintHL();                    // 미리보기 상태로 되돌려 다시 그린다
   }
 }
 function dl(canvas,name){
